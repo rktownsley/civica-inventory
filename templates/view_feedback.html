@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedback Submissions</title>
+  
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"></head>
+<body class="page-view-feedback">
+  <h2>Feedback Submissions</h2>
+  {% if feedback %}
+  <table>
+    <tr>
+      <th>Timestamp</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Type</th>
+      <th>Topic</th>
+      <th>Message</th>
+      <th>Rating</th>
+      <th>File</th>
+    </tr>
+    {% for entry in feedback %}
+    <tr>
+      <td>{{ entry.timestamp }}</td>
+      <td>{{ entry.name }}</td>
+      <td>{{ entry.email }}</td>
+      <td>{{ entry.type }}</td>
+      <td>{{ entry.topic }}</td>
+      <td>{{ entry.message }}</td>
+      <td>{{ entry.rating }}</td>
+      <td>
+        {% if entry.file_url %}
+          <a href="{{ entry.file_url }}" target="_blank">View</a>
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+    <p>No feedback submitted yet.</p>
+  {% endif %}
+</body>
+</html>

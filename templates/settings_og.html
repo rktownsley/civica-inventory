@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% block body_class %}page-settings-og{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+
+<div>
+    <!-- <a href="{{ url_for('download_inventory') }}"
+    class="btn btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center"
+    style="width: 38px; height: 38px; padding: 0;"
+    title="Download Inventory">
+    <i class="bi bi-download"></i>
+    </a> -->
+    {% if session['user'] == 'admin' %}
+    <a href="{{ url_for('download_inventory') }}" class="btn btn-outline-secondary">
+        <!-- <i class="bi bi-download me-1"></i> Backup -->
+        <i class="bi bi-download"></i> backup data
+    </a>
+    {% endif %}
+</div>
+
+
+
+<div>
+    {% if session['user'] == 'admin' %}
+    <a href="{{ url_for('download_messages') }}" style="display:none" class="btn btn-outline-secondary">
+        <i class="bi bi-download"></i> download message log
+    </a>
+    {% endif %}
+</div>
+
+
+
+<!-- Locations Section>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Site</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for location in locations | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>{{ location['value'] }}</td>
+            <td>
+                <a href="{{ url_for('view_location', location_value=location['value']) }}" class="btn btn-info btn-sm">View</a>
+
+                <form method="POST" action="{{ url_for('delete_location', location_value=location['value']) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        <!- Form to Add Location ->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="location">
+                    <input type="text" name="value" placeholder="Add Site" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table-->
+
+<!-- Site Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Site</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for location in locations | sort(attribute='value', reverse=false) %}
+        <tr onclick="window.location='{{ url_for('view_location', location_value=location['value']) }}'" style="cursor: pointer;">
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ location['value'] }}" method="POST" action="{{ url_for('edit_location', location_value=location['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ location['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ location['value'] }}').style.display='none'; document.getElementById('locationName-{{ location['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Location Name (Visible initially) -->
+                <span id="locationName-{{ location['value'] }}" style="display: inline;">
+                    {{ location['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+
+                
+                    <!--a href="{{ url_for('view_location', location_value=location['value']) }}" class="btn btn-info btn-sm">View</a-->
+
+                    <!-- Edit Button (Initially visible) -->
+                    {% if location['value'] == 'Grove' or location['value'] == 'Knights Landing' or location['value'] == 'Tepati' %}
+                        <button type="button" class="btn btn-warning btn-sm edit-btn" disabled>Edit</button>
+                    {% else %}
+                        <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ location['value'] }}').style.display='inline'; document.getElementById('locationName-{{ location['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+                    {% endif %}
+
+
+                    <!-- Form for Deleting Location -->
+                    <form method="POST" action="{{ url_for('delete_location', location_value=location['value']) }}" style="display:inline;">
+                        {% if location['value'] == 'Grove' or location['value'] == 'Knights Landing' or location['value'] == 'Tepati' %}
+                        <button type="submit" class="btn btn-danger btn-sm" disabled>Delete</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Location -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="location">
+                    <input type="text" name="value" placeholder="Add Site" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Categories Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for category in categories | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ category['value'] }}" method="POST" action="{{ url_for('edit_category', category_value=category['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ category['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ category['value'] }}').style.display='none'; document.getElementById('categoryName-{{ category['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Category Name (Visible initially) -->
+                <span id="categoryName-{{ category['value'] }}" style="display: inline;">
+                    {{ category['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ category['value'] }}').style.display='inline'; document.getElementById('categoryName-{{ category['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting Category -->
+                    <form method="POST" action="{{ url_for('delete_category', category_value=category['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Category -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="category">
+                    <input type="text" name="value" placeholder="Add Category" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+
+
+<!-- Medication Class Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Medication Class</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for medication_class in medication_classes | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ medication_class['value'] }}" method="POST" action="{{ url_for('edit_medication_class', medication_class_value=medication_class['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ medication_class['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ medication_class['value'] }}').style.display='none'; document.getElementById('medication_className-{{ medication_class['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- medication_class Name (Visible initially) -->
+                <span id="medication_className-{{ medication_class['value'] }}" style="display: inline;">
+                    {{ medication_class['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ medication_class['value'] }}').style.display='inline'; document.getElementById('medication_className-{{ medication_class['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting medication_class -->
+                    <form method="POST" action="{{ url_for('delete_medication_class', medication_class_value=medication_class['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add medication_class -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="medication_class">
+                    <input type="text" name="value" placeholder="Add Medication Class" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+
+<!-- Supplier Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Supplier</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for supplier in suppliers | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ supplier['value'] }}" method="POST" action="{{ url_for('edit_supplier', supplier_value=supplier['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ supplier['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ supplier['value'] }}').style.display='none'; document.getElementById('supplierName-{{ supplier['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Supplier Name (Visible initially) -->
+                <span id="supplierName-{{ supplier['value'] }}" style="display: inline;">
+                    {{ supplier['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ supplier['value'] }}').style.display='inline'; document.getElementById('supplierName-{{ supplier['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting Supplier -->
+                    <form method="POST" action="{{ url_for('delete_supplier', supplier_value=supplier['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Supplier -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="supplier">
+                    <input type="text" name="value" placeholder="Add Supplier" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+
+
+
+<!-- Dispense Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Dispensed Unit</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dispense in dispenses | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ dispense['value'] }}" method="POST" action="{{ url_for('edit_dispense', dispense_value=dispense['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ dispense['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ dispense['value'] }}').style.display='none'; document.getElementById('dispenseName-{{ dispense['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Dispense Name (Visible initially) -->
+                <span id="dispenseName-{{ dispense['value'] }}" style="display: inline;">
+                    {{ dispense['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ dispense['value'] }}').style.display='inline'; document.getElementById('dispenseName-{{ dispense['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting Dispense -->
+                    <form method="POST" action="{{ url_for('delete_dispense', dispense_value=dispense['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Dispense -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="dispense_as">
+                    <input type="text" name="value" placeholder="Add Dispense" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+
+<!-- Unit Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Unit</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for unit in units | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ unit['value'] }}" method="POST" action="{{ url_for('edit_unit', unit_value=unit['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ unit['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ unit['value'] }}').style.display='none'; document.getElementById('unitName-{{ unit['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Unit Name (Visible initially) -->
+                <span id="unitName-{{ unit['value'] }}" style="display: inline;">
+                    {{ unit['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ unit['value'] }}').style.display='inline'; document.getElementById('unitName-{{ unit['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting Unit -->
+                    <form method="POST" action="{{ url_for('delete_unit', unit_value=unit['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Unit -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="dispense_used">
+                    <input type="text" name="value" placeholder="Add Unit" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+
+
+<!-- Form Section -->
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Form</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for form in forms | sort(attribute='value', reverse=false) %}
+        <tr>
+            <td>
+                <!-- Edit Form (Initially hidden) -->
+                <form id="editForm-{{ form['value'] }}" method="POST" action="{{ url_for('edit_form', form_value=form['value']) }}" style="display:none;">
+                    <input type="text" name="value" value="{{ form['value'] }}" class="form-control form-control-sm" required>
+                    <button type="submit" class="btn btn-warning btn-sm">Update</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('editForm-{{ form['value'] }}').style.display='none'; document.getElementById('formName-{{ form['value'] }}').style.display='inline'; this.closest('tr').querySelector('.edit-btn').style.display='inline'">Cancel</button>
+                </form>
+
+                <!-- Form Name (Visible initially) -->
+                <span id="formName-{{ form['value'] }}" style="display: inline;">
+                    {{ form['value'] }}
+                </span>
+            </td>
+
+            <td>
+                <div class="d-inline-flex align-items-center gap-1">
+                    <!-- Edit Button (Initially visible) -->
+                    <button type="button" class="btn btn-warning btn-sm edit-btn" onclick="document.getElementById('editForm-{{ form['value'] }}').style.display='inline'; document.getElementById('formName-{{ form['value'] }}').style.display='none'; this.style.display='none'">Edit</button>
+
+                    <!-- Form for Deleting Form -->
+                    <form method="POST" action="{{ url_for('delete_form', form_value=form['value']) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirmDelete()">Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+        
+        <!-- Form to Add Form -->
+        <tr>
+            <form method="POST" class="mb-3">
+                <td>
+                    <input type="hidden" name="type" value="form">
+                    <input type="text" name="value" placeholder="Add Form" class="form-control mb-2" required>
+                </td>
+                <td>
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </td>
+            </form>
+        </tr>
+    </tbody>
+</table>
+
+<!-- {% if session['user'] == 'admin' %}
+    <div class="my-4">
+        <a href="{{ url_for('download_inventory') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-download"></i> Download Inventory
+        </a>
+        {% if last_download_time %}
+            <div class="mt-2 text-muted" style="font-size: 0.9em;">
+                Last updated: {{ last_download_time.strftime('%Y-%m-%d %H:%M:%S') }}
+            </div>
+        {% endif %}
+    </div>
+{% endif %} -->
+
+
+
+<script>
+    function confirmDelete() {
+        return confirm('Are you sure you want to delete this item? This action cannot be undone.');
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,1610 @@
+{% extends "base.html" %}
+{% block body_class %}page-add-item{% endblock %}
+{% block content %}
+<h1 id="page-title">Add Item</h1>
+
+<!-- Success Notification -->
+<div id="success-notification" class="success-notification" role="alert" aria-live="polite" style="display:none;">
+    <span id="success-message">Item saved successfully!</span>
+</div>
+
+<form method="POST" style="margin-bottom: 30px;" enctype="multipart/form-data" id="item-form" novalidate>
+
+    <div class="mb-3" id="name-field">
+        <label for="item-name">Name <span class="text-danger">*</span></label>
+        <input type="text" id="item-name" name="name" class="form-control" autocomplete="off" value="{{ prefill_values.get('name', '') }}" required aria-describedby="name-error">
+        <span id="name-error" class="error-message text-danger" role="alert" style="display:none;">Please enter an item name</span>
+    </div>
+
+    <div class="mb-3" id="aka-field">
+        <label for="item-aka">Also Known As (AKA)</label>
+        <input type="text" id="item-aka" name="aka" class="form-control" autocomplete="off" value="{{ prefill_values.get('aka', '') }}">
+    </div>
+
+    <div class="mb-3">
+        <label for="category-select">Category <span class="text-danger">*</span></label>
+        <select name="category" class="form-control" id="category-select" required aria-describedby="category-error">
+            <option value="" {% if not prefill_values.get('category') %}selected{% endif %}></option>
+
+            {% set prefill_category = prefill_values.get('category') %}
+            {% if prefill_category and prefill_category not in categories | map(attribute=0) | list %}
+                <!-- Show old category only as prefilled, not selectable again -->
+                <option value="{{ prefill_category }}" selected hidden>{{ prefill_category }}</option>
+            {% endif %}
+
+            {% for category in categories | sort(attribute='value', reverse=false) %}
+                <option value="{{ category[0] }}"
+                    {% if prefill_category == category[0] %} selected {% endif %}>
+                    {{ category[0] }}
+                </option>
+            {% endfor %}
+        </select>
+        <span id="category-error" class="error-message text-danger" role="alert" style="display:none;">Please select a category</span>
+    </div>
+
+    <div class="mb-3">
+        <label for="dispense-select">Dispensed Unit <span class="text-danger">*</span></label>
+        <select name="dispense_as" class="form-control" id="dispense-select" required aria-describedby="dispense-error">
+            <option value="" selected></option>
+            {% for dispense in dispenses | sort(attribute='value', reverse=false) %}
+            <option value="{{ dispense[0] }}" {% if prefill_values.get('dispense_as') == dispense[0] %} selected {% endif %}>{{ dispense[0] }}</option>
+            {% endfor %}
+        </select>
+        <span id="dispense-error" class="error-message text-danger" role="alert" style="display:none;">Please select a dispensed unit</span>
+    </div>
+
+    <!-- Primary Lot -->
+    <div id="main-lot">
+        <div class="mb-3">
+            <label for="lot-number">Lot #</label>
+            <input type="text" id="lot-number" name="lot_number" class="form-control" autocomplete="off" value="{{ prefill_values.get('lot_number', '') }}">
+        </div>
+
+        <div class="mb-3 expiration-wrapper">
+            <label>Expiration Date <span class="text-danger">*</span></label>
+            <div class="d-flex align-items-center gap-2">
+                <select id="month" class="form-control exp-month" style="width: 70px;" required aria-label="Month">
+                    <option value="">mm</option>
+                    <option value="01">01</option>
+                    <option value="02">02</option>
+                    <option value="03">03</option>
+                    <option value="04">04</option>
+                    <option value="05">05</option>
+                    <option value="06">06</option>
+                    <option value="07">07</option>
+                    <option value="08">08</option>
+                    <option value="09">09</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                </select>
+
+                <select id="day" class="form-control exp-day" style="width: 70px;" required aria-label="Day">
+                    <option value="">dd</option>
+                </select>
+
+                <select id="year" class="form-control exp-year" style="width: 90px;" required aria-label="Year">
+                    <option value="">yyyy</option>
+                </select>
+
+                <button type="button" id="no-expire-btn" class="btn btn-outline-secondary no-expire-btn">
+                    Does not expire
+                </button>
+            </div>
+            <input type="hidden" name="expiration_date" id="expiration_date" value="{{ prefill_values.get('expiration_date', '') }}">
+        </div>
+
+        <!-- Quantity fields for each location -->
+        {% for location in locations | sort(attribute='value', reverse=false) %}
+        <div class="mb-3">
+            <label for="quantity-{{ location[0] }}">Quantity @
+                {% if location[0] == 'Knights Landing' %}
+                    KL
+                {% else %}
+                    {{ location[0] }}
+                {% endif %}
+            </label>
+            <input type="number" name="quantity_{{ location[0] }}" class="form-control" id="quantity-{{ location[0] }}" min="0" step="1" autocomplete="off" data-location="{{ location[0] }}">
+        </div>
+        <input type="hidden" name="location_{{ location[0] }}" value="{{ location[0] }}">
+
+        <!-- Location fields specific to this location -->
+        <div id="location-fields-{{ location[0] }}" class="location-fields" style="display: none; margin-left: 20px;">
+            <div class="mb-3">
+                <label for="location1-{{ location[0] }}">Location 1</label>
+                <select id="location1-{{ location[0] }}" name="location1_{{ location[0] }}" class="form-control">
+                    <option value="" selected></option>
+                    {% for location1 in locations1 | sort(attribute='value', reverse=false) %}
+                    <option>{{ location1[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="location2-{{ location[0] }}">Location 2</label>
+                <select id="location2-{{ location[0] }}" name="location2_{{ location[0] }}" class="form-control">
+                    <option value="" selected></option>
+                    {% for location2 in locations2 | sort(attribute='value', reverse=false) %}
+                    <option>{{ location2[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="location3-{{ location[0] }}">Location 3</label>
+                <select id="location3-{{ location[0] }}" name="location3_{{ location[0] }}" class="form-control">
+                    <option value="" selected></option>
+                    {% for location3 in locations3 | sort(attribute='value', reverse=false) %}
+                    <option>{{ location3[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="location4-{{ location[0] }}">Location 4</label>
+                <select id="location4-{{ location[0] }}" name="location4_{{ location[0] }}" class="form-control">
+                    <option value="" selected></option>
+                    {% for location4 in locations4 | sort(attribute='value', reverse=false) %}
+                    <option>{{ location4[0] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% endfor %}
+    </div>
+
+    <!-- Extra Lots Container -->
+    <div id="extra-items-container" role="list" aria-label="Additional lots"></div>
+    <button type="button" id="add-extra-item-btn" class="btn btn-outline-secondary mb-3">Add Lot(s)</button>
+
+    <div id="extra-fields">
+
+        <!-- Additional Options for Surgical Instrument -->
+        <div class="mb-3" id="disposable-select" style="display:none;">
+            <label for="instrument-type-select">Type of Surgical Instrument</label>
+            <select name="instrument_type" class="form-control" id="instrument-type-select">
+                <option value="" selected></option>
+                <option value="disposable" {% if prefill_values.get('instrument_type') == 'disposable' %} selected {% endif %}>Disposable</option>
+                <option value="reusable" {% if prefill_values.get('instrument_type') == 'reusable' %} selected {% endif %}>Reusable</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="dosage-input">Dosage</label>
+            <input type="text" id="dosage-input" name="dosage" class="form-control" autocomplete="off" placeholder="e.g., 500mg" value="{{ prefill_values.get('dosage', '') }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="form-select">Form</label>
+            <select name="form" class="form-control" id="form-select">
+                <option value="" selected></option>
+                {% for form in forms | sort(attribute='value', reverse=false) %}
+                <option value="{{ form[0] }}" {% if prefill_values.get('form') == form[0] %} selected {% endif %}>{{ form[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="unit-select">Unit</label>
+            <select name="dispense_used" class="form-control" id="unit-select">
+                <option value="" selected></option>
+                {% for unit in units | sort(attribute='value', reverse=false) %}
+                <option value="{{ unit[0] }}" {% if prefill_values.get('dispense_used') == unit[0] %} selected {% endif %}>{{ unit[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="ndc-input">National Drug Code (NDC)</label>
+            <input type="text" id="ndc-input" name="ndc" class="form-control" autocomplete="off" value="{{ prefill_values.get('ndc', '') }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="medication-class-select">Medication Class</label>
+            <select name="medication_class" class="form-control" id="medication-class-select">
+                <option value="" selected></option>
+                {% for medication_class in medication_classes | sort(attribute='value', reverse=false) %}
+                <option value="{{ medication_class[0] }}" {% if medication_class[0] == prefill_values.get('medication_class') %} selected {% endif %}>{{ medication_class[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="supplier-select">Supplier</label>
+            <select name="supplier" class="form-control" id="supplier-select">
+                <option value="" selected></option>
+                {% for supplier in suppliers | sort(attribute='value', reverse=false) %}
+                <option value="{{ supplier[0] }}" {% if supplier[0] == prefill_values.get('supplier') %} selected {% endif %}>{{ supplier[0] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="order-number">Order #</label>
+            <input type="text" id="order-number" name="order_number" class="form-control" autocomplete="off" value="{{ prefill_values.get('order_number', '') }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="order-quantity">Quantity to Order</label>
+            <input type="text" id="order-quantity" name="order_quantity" class="form-control" autocomplete="off" value="{{ prefill_values.get('order_quantity', '') }}">
+        </div>
+
+        <!-- Minimum Supply fields for each location -->
+        {% for location in locations | sort(attribute='value', reverse=false) %}
+        <div class="mb-3">
+            <label for="minimum-supply-{{ location[0] }}">Minimum Supply @
+                {% if location[0] == 'Knights Landing' %}
+                    KL
+                {% else %}
+                    {{ location[0] }}
+                {% endif %}
+            </label>
+            <input type="number" name="minimum_supply_{{ location[0] }}" class="form-control" id="minimum-supply-{{ location[0] }}" min="0" step="1" placeholder="0" autocomplete="off" value="{{ prefill_values.get('minimum_supply_' + location[0]|replace(' ', '_'), '') }}">
+        </div>
+        {% endfor %}
+
+        <div class="mb-3">
+            <label for="photo-upload">Upload Photo (optional)</label>
+            <input type="file" id="photo-upload" name="photo" class="form-control" accept="image/jpeg,image/png,image/jpg">
+            <span id="file-label" class="form-text">Max 5MB, JPG/PNG</span>
+            <div id="image-preview-container" style="display:none;" class="mt-2">
+                <img id="image-preview" src="" alt="Photo preview" class="image-preview" style="max-width: 200px; max-height: 200px;">
+                <button type="button" id="remove-image" class="btn btn-link text-danger p-0 d-block mt-1">Remove image</button>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label for="description">Notes</label>
+            <textarea id="description" name="description" class="form-control" rows="3" placeholder="Additional notes or instructions...">{{ prefill_values.get('description', '') }}</textarea>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="button" id="reset-form-btn" class="btn btn-outline-secondary">Reset Form</button>
+
+        <button type="button" onclick="handleCancel()" class="btn btn-outline-secondary">Cancel</button>
+
+        <button type="submit"
+                id="submit-button"
+                class="btn btn-primary {% if session.get('user') != 'admin' %}disabled-btn{% endif %}"
+                {% if session.get('user') != 'admin' %}
+                    title="You are not allowed to add items"
+                    disabled
+                {% else %}
+                    title="Save Item"
+                {% endif %}>
+            <span id="save-text-large">Save Item</span>
+            <span class="spinner" style="display:none;" aria-hidden="true"></span>
+        </button>
+    </div>
+
+</form>
+<script>
+/**
+ * Inventory Management System - Add Item Module
+ * Handles form submission, validation, and UI interactions
+ * @version 2.0
+ */
+
+(function() {
+  'use strict';
+
+  // Configuration constants
+  const CONFIG = {
+    CURRENT_YEAR: new Date().getFullYear(),
+    YEAR_RANGE_START: 2012,
+    YEAR_RANGE_END: new Date().getFullYear() + 10,
+    MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+    ALLOWED_FILE_TYPES: ['image/jpeg', 'image/jpg', 'image/png'],
+    DEBOUNCE_DELAY: 300,
+    AUTO_SAVE_INTERVAL: 30000 // 30 seconds
+  };
+
+  // State management
+  const state = {
+    extraItemCount: 0,
+    formData: {},
+    hasUnsavedChanges: false,
+    isSubmitting: false
+  };
+
+  /**
+   * DOM Ready Handler
+   */
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeForm();
+    setupEventListeners();
+    setupValidation();
+    setupAutoSave();
+    setupAccessibility();
+    restoreFormData();
+  });
+
+  /**
+   * Initialize form elements and populate dropdowns
+   */
+  function initializeForm() {
+    const pageTitle = document.getElementById('page-title');
+    const submitButton = document.getElementById('submit-button');
+    const saveLarge = document.getElementById('save-text-large');
+    const noExpireBtn = document.getElementById('no-expire-btn');
+    const fromAddItemPage = sessionStorage.getItem('fromAddItemPage') === 'true';
+
+    // Set page title based on mode
+    if (fromAddItemPage) {
+      pageTitle.textContent = 'Add Item';
+      saveLarge.textContent = 'Save Item';
+      if (noExpireBtn) noExpireBtn.click();
+    } else {
+      pageTitle.textContent = 'Add Stock';
+      const nameInput = document.querySelector('input[name="name"]');
+      const itemName = nameInput ? nameInput.value.trim() : '';
+      if (itemName) {
+        // pageTitle.textContent = `Add ${itemName}`;
+        pageTitle.textContent = `Add Stock`;
+      }
+      saveLarge.textContent = 'Save Item';
+      // if (basicInfoSection) {
+      //   basicInfoSection.classList.add('hidden');
+      // }
+    }
+
+    const extraFields = document.getElementById('extra-fields');
+    if (extraFields && fromAddItemPage) {
+      extraFields.style.display = 'block';
+    }
+
+    // Populate year and day dropdowns
+    populateYears();
+    populateDays(document.getElementById('month').value);
+    
+    // Prefill expiration date if provided
+    prefillExpirationDate();
+    
+    // Initialize location dropdowns
+    initializeLocationDropdowns();
+    
+    // Autofill photo if present in prefill values
+    const photoUrl = "{{ prefill_values.get('photo_url', '') }}";
+    if (photoUrl && photoUrl !== 'None' && photoUrl !== 'null') {
+      const imagePreview = document.getElementById('image-preview');
+      const imagePreviewContainer = document.getElementById('image-preview-container');
+      const fileLabel = document.getElementById('file-label');
+      
+      if (imagePreview && imagePreviewContainer) {
+        imagePreview.src = '/static/' + photoUrl;
+        imagePreviewContainer.style.display = 'block';
+        if (fileLabel) {
+          fileLabel.textContent = 'Photo loaded from item';
+        }
+      }
+    }
+  }
+
+  /**
+   * Setup all event listeners
+   */
+  function setupEventListeners() {
+    // Form submission
+    const form = document.getElementById('item-form');
+    if (form) {
+      form.addEventListener('submit', handleFormSubmit);
+    }
+
+    // Reset button
+    const resetBtn = document.getElementById('reset-form-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', handleReset);
+    }
+
+    // Add lot button
+    const addLotBtn = document.getElementById('add-extra-item-btn');
+    if (addLotBtn) {
+      addLotBtn.addEventListener('click', addExtraLot);
+    }
+
+    // Date selectors
+    const month = document.getElementById('month');
+    const day = document.getElementById('day');
+    const year = document.getElementById('year');
+    
+    if (month) {
+      month.addEventListener('change', function() {
+        populateDays(this.value);
+        updateHiddenExpiration();
+      });
+    }
+    
+    if (day) day.addEventListener('change', updateHiddenExpiration);
+    if (year) {
+      year.addEventListener('change', function() {
+        populateDays(month.value);
+        updateHiddenExpiration();
+      });
+    }
+
+    // No expire button - delegate for both primary and extra lots
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('no-expire-btn')) {
+        if (e.target.id === 'no-expire-btn') {
+          // Primary lot
+          toggleExpiration();
+        } else {
+          // Extra lot
+          toggleExtraLotExpiration(e);
+        }
+      }
+    });
+    document.addEventListener('input', function(e) {
+      if (e.target.matches('[name^="quantity_"]')) {
+        debounce(function() {
+          toggleLocationFields(e.target);
+        }, CONFIG.DEBOUNCE_DELAY)();
+      }
+    });
+
+    // File upload
+    const fileInput = document.getElementById('photo-upload');
+    if (fileInput) {
+      fileInput.addEventListener('change', handleFileUpload);
+    }
+
+    const removeImageBtn = document.getElementById('remove-image');
+    if (removeImageBtn) {
+      removeImageBtn.addEventListener('click', removeImage);
+    }
+
+    // Form change tracking
+    form.addEventListener('input', function() {
+      state.hasUnsavedChanges = true;
+    });
+
+    // Warn on page leave
+    window.addEventListener('beforeunload', function(e) {
+      if (state.hasUnsavedChanges && !state.isSubmitting) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+
+    // Category change for surgical instruments
+    const categorySelect = document.getElementById('category-select');
+    if (categorySelect) {
+      categorySelect.addEventListener('change', handleCategoryChange);
+    }
+
+    // Keyboard accessibility for file upload
+    const fileLabel = document.querySelector('label[for="photo-upload"]');
+    if (fileLabel) {
+      fileLabel.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          fileInput.click();
+        }
+      });
+    }
+  }
+
+  /**
+   * Setup form validation
+   */
+  function setupValidation() {
+    const form = document.getElementById('item-form');
+    const inputs = form.querySelectorAll('input[required], select[required]');
+    
+    // Remove blur validation - only validate on submit
+    inputs.forEach(input => {
+      input.addEventListener('input', function() {
+        // Clear error styling when user starts typing
+        if (this.classList.contains('invalid')) {
+          validateField(this);
+        }
+      });
+    });
+  }
+
+  /**
+   * Validate individual form field
+   */
+  function validateField(field) {
+    const errorId = field.getAttribute('aria-describedby');
+    const errorElement = errorId ? document.getElementById(errorId) : null;
+    
+    if (!field.validity.valid) {
+      field.classList.add('is-invalid', 'invalid');
+      field.setAttribute('aria-invalid', 'true');
+      
+      if (errorElement) {
+        errorElement.style.display = 'block';
+        if (field.validity.valueMissing) {
+          errorElement.textContent = `Please enter ${field.labels[0]?.textContent.toLowerCase() || 'a value'}`;
+        }
+      }
+      return false;
+    } else {
+      field.classList.remove('is-invalid', 'invalid');
+      field.setAttribute('aria-invalid', 'false');
+      
+      if (errorElement) {
+        errorElement.style.display = 'none';
+      }
+      return true;
+    }
+  }
+
+  /**
+   * Setup auto-save functionality
+   */
+  function setupAutoSave() {
+    setInterval(function() {
+      if (state.hasUnsavedChanges) {
+        saveFormData();
+      }
+    }, CONFIG.AUTO_SAVE_INTERVAL);
+  }
+
+  /**
+   * Save form data to sessionStorage
+   */
+  function saveFormData() {
+    const form = document.getElementById('item-form');
+    const formData = new FormData(form);
+    const data = {};
+    
+    for (let [key, value] of formData.entries()) {
+      data[key] = value;
+    }
+    
+    try {
+      sessionStorage.setItem('inventoryFormData', JSON.stringify(data));
+    } catch (e) {
+      console.error('Failed to save form data:', e);
+    }
+  }
+
+  /**
+   * Restore form data from sessionStorage
+   */
+  function restoreFormData() {
+    try {
+      const savedData = sessionStorage.getItem('inventoryFormData');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        const form = document.getElementById('item-form');
+        
+        Object.keys(data).forEach(key => {
+          const input = form.querySelector(`[name="${key}"]`);
+          if (input && !input.value) {
+            input.value = data[key];
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Failed to restore form data:', e);
+    }
+  }
+
+  /**
+   * Setup accessibility features
+   */
+  function setupAccessibility() {
+    // No modal focus trap needed on a standard page.
+    // (Previously trapped focus within a modal dialog; now a normal page.)
+  }
+
+  /**
+   * Populate years dropdown
+   */
+  function populateYears() {
+    const yearSelect = document.getElementById('year');
+    if (!yearSelect) return;
+    
+    for (let i = CONFIG.YEAR_RANGE_START; i <= CONFIG.YEAR_RANGE_END; i++) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.textContent = i;
+      yearSelect.appendChild(option);
+    }
+  }
+
+  /**
+   * Populate days dropdown based on month
+   */
+  function populateDays(month) {
+    const daySelect = document.getElementById('day');
+    if (!daySelect) return;
+    
+    const selectedDay = daySelect.value;
+    daySelect.innerHTML = '<option value="">dd</option>';
+
+    const year = document.getElementById('year').value;
+    const daysInMonth = getDaysInMonth(month, year);
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const option = document.createElement('option');
+      const dayValue = i < 10 ? '0' + i : i.toString();
+      option.value = dayValue;
+      option.textContent = dayValue;
+      daySelect.appendChild(option);
+    }
+
+    if (selectedDay && parseInt(selectedDay) <= daysInMonth) {
+      daySelect.value = selectedDay;
+    }
+  }
+
+  /**
+   * Get number of days in a month
+   */
+  function getDaysInMonth(month, year) {
+    if (!month) return 31;
+    
+    const monthDays = {
+      '01': 31, '03': 31, '05': 31, '07': 31,
+      '08': 31, '10': 31, '12': 31,
+      '04': 30, '06': 30, '09': 30, '11': 30
+    };
+
+    if (month === '02') {
+      return year && isLeapYear(parseInt(year)) ? 29 : 28;
+    }
+
+    return monthDays[month] || 31;
+  }
+
+  /**
+   * Check if year is a leap year
+   */
+  function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  }
+
+  /**
+   * Prefill expiration date from URL parameters
+   */
+  function prefillExpirationDate() {
+    const hidden = document.getElementById('expiration_date');
+    if (!hidden || !hidden.value) return;
+    
+    const dateStr = hidden.value;
+    const fromAddItemPage = sessionStorage.getItem('fromAddItemPage') === 'true';
+    
+    // Handle empty dates - trigger "Does not expire"
+    if (!dateStr || dateStr.trim() === '') {
+      const noExpireBtn = document.getElementById('no-expire-btn');
+      if (noExpireBtn && !fromAddItemPage) {
+        noExpireBtn.click();
+      }
+      return;
+    }
+    
+    // Parse the date (format: MM/DD/YYYY or YYYY-MM-DD)
+    let month, day, year;
+    
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      month = parts[0];
+      day = parts[1];
+      year = parts[2];
+    } else if (dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      year = parts[0];
+      month = parts[1];
+      day = parts[2];
+    }
+    
+    // Populate the dropdowns
+    const monthSelect = document.getElementById('month');
+    const daySelect = document.getElementById('day');
+    const yearSelect = document.getElementById('year');
+    
+    if (monthSelect && month) {
+      monthSelect.value = month.padStart(2, '0');
+      populateDays(monthSelect.value);
+    }
+    
+    if (daySelect && day) {
+      daySelect.value = day.padStart(2, '0');
+    }
+    
+    if (yearSelect && year) {
+      yearSelect.value = year;
+    }
+  }
+
+  /**
+   * Update hidden expiration date field
+   */
+  function updateHiddenExpiration() {
+    const month = document.getElementById('month');
+    const day = document.getElementById('day');
+    const year = document.getElementById('year');
+    const hidden = document.getElementById('expiration_date');
+    
+    if (!month || !day || !year || !hidden) return;
+
+    if (month.value && day.value && year.value) {
+      hidden.value = `${month.value}/${day.value}/${year.value}`;
+    } else if (month.value && !day.value && year.value) {
+      const daysInMonth = getDaysInMonth(month.value, year.value);
+      const lastDay = daysInMonth < 10 ? '0' + daysInMonth : daysInMonth;
+      hidden.value = `${month.value}/${lastDay}/${year.value}`;
+    } else {
+      hidden.value = '';
+    }
+  }
+
+  /**
+   * Toggle expiration date fields
+   */
+  function toggleExpiration() {
+    const month = document.getElementById('month');
+    const day = document.getElementById('day');
+    const year = document.getElementById('year');
+    const btn = document.getElementById('no-expire-btn');
+    
+    if (!month || !day || !year || !btn) return;
+    
+    const isDisabled = month.disabled;
+
+    if (!isDisabled) {
+      [month, day, year].forEach(el => {
+        el.value = '';
+        el.required = false;
+        el.disabled = true;
+      });
+      btn.textContent = 'Expiration disabled';
+      btn.classList.add('btn-secondary');
+      btn.classList.remove('btn-outline-secondary');
+    } else {
+      [month, day, year].forEach(el => {
+        el.required = true;
+        el.disabled = false;
+      });
+      btn.textContent = 'Does not expire';
+      btn.classList.remove('btn-secondary');
+      btn.classList.add('btn-outline-secondary');
+    }
+
+    updateHiddenExpiration();
+  }
+
+  /**
+   * Toggle expiration for extra lots
+   */
+  function toggleExtraLotExpiration(e) {
+    const wrapper = e.target.closest('.extra-item') || e.target.closest('#main-lot');
+    if (!wrapper) return;
+    
+    const selects = wrapper.querySelectorAll('select.exp-month, select.exp-day, select.exp-year');
+    const disabled = selects[0].disabled;
+
+    if (!disabled) {
+      selects.forEach(select => {
+        select.value = '';
+        select.required = false;
+        select.disabled = true;
+      });
+      e.target.textContent = 'Expiration disabled';
+      e.target.classList.add('btn-secondary');
+      e.target.classList.remove('btn-outline-secondary');
+    } else {
+      selects.forEach(select => {
+        select.required = true;
+        select.disabled = false;
+      });
+      e.target.textContent = 'Does not expire';
+      e.target.classList.remove('btn-secondary');
+      e.target.classList.add('btn-outline-secondary');
+    }
+  }
+
+  /**
+   * Add extra lot
+   */
+  function addExtraLot() {
+    state.extraItemCount++;
+    const container = document.getElementById('extra-items-container');
+    const fieldSet = document.createElement('div');
+    fieldSet.classList.add('extra-item');
+    fieldSet.dataset.itemId = state.extraItemCount;
+    fieldSet.setAttribute('role', 'listitem');
+
+    const primaryMonth = document.getElementById('month');
+    const isExpirationDisabled = primaryMonth.disabled;
+
+    let quantityFields = '';
+    {% for location in locations | sort(attribute=0) %}
+      quantityFields += `
+        <div class="mb-3">
+          <label for="quantity-extra-${state.extraItemCount}-{{ location[0] }}">
+            Quantity @ {% if location[0] == "Knights Landing" %}KL{% else %}{{ location[0] }}{% endif %}
+          </label>
+          <input 
+            type="number" 
+            id="quantity-extra-${state.extraItemCount}-{{ location[0] }}"
+            name="quantity_extra_${state.extraItemCount}_{{ location[0] }}" 
+            min="0"
+            step="1"
+            autocomplete="off"
+            class="form-control" 
+            data-extra-id="${state.extraItemCount}"
+            data-location="{{ location[0] }}"
+            oninput="window.inventoryApp.toggleExtraLocationFields(this)">
+        </div>
+        <input type="hidden" name="location_extra_${state.extraItemCount}_{{ location[0] }}" value="{{ location[0] }}">
+
+        <div id="location-fields-extra_${state.extraItemCount}_{{ location[0] }}" class="location-fields" style="display: none; margin-left: 20px;">
+          <div class="mb-3">
+            <label for="location1-extra-${state.extraItemCount}-{{ location[0] }}">Location 1</label>
+            <select 
+              id="location1-extra-${state.extraItemCount}-{{ location[0] }}"
+              name="location1_extra_${state.extraItemCount}_{{ location[0] }}" 
+              class="form-control">
+              <option value="" selected></option>
+              {% for location1 in locations1 | sort(attribute='value', reverse=false) %}
+                <option>{{ location1[0] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="location2-extra-${state.extraItemCount}-{{ location[0] }}">Location 2</label>
+            <select 
+              id="location2-extra-${state.extraItemCount}-{{ location[0] }}"
+              name="location2_extra_${state.extraItemCount}_{{ location[0] }}" 
+              class="form-control">
+              <option value="" selected></option>
+              {% for location2 in locations2 | sort(attribute='value', reverse=false) %}
+                <option>{{ location2[0] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="location3-extra-${state.extraItemCount}-{{ location[0] }}">Location 3</label>
+            <select 
+              id="location3-extra-${state.extraItemCount}-{{ location[0] }}"
+              name="location3_extra_${state.extraItemCount}_{{ location[0] }}" 
+              class="form-control">
+              <option value="" selected></option>
+              {% for location3 in locations3 | sort(attribute='value', reverse=false) %}
+                <option>{{ location3[0] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="location4-extra-${state.extraItemCount}-{{ location[0] }}">Location 4</label>
+            <select 
+              id="location4-extra-${state.extraItemCount}-{{ location[0] }}"
+              name="location4_extra_${state.extraItemCount}_{{ location[0] }}" 
+              class="form-control">
+              <option value="" selected></option>
+              {% for location4 in locations4 | sort(attribute='value', reverse=false) %}
+                <option>{{ location4[0] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      `;
+    {% endfor %}
+
+    fieldSet.innerHTML = `
+      <hr>
+      <div class="d-flex justify-content-between align-items-center">
+        <h4>Additional Lot ${state.extraItemCount}</h4>
+        <button 
+          type="button" 
+          class="removeLot btn btn-link text-danger" 
+          onclick="window.inventoryApp.removeExtraLot(this)"
+          aria-label="Remove lot ${state.extraItemCount}">
+          Remove
+        </button>
+      </div>
+
+      <div class="mb-3">
+        <label for="lot-number-extra-${state.extraItemCount}">Lot #</label>
+        <input 
+          type="text" 
+          id="lot-number-extra-${state.extraItemCount}"
+          name="lot_number_extra_${state.extraItemCount}" 
+          autocomplete="off"
+          class="form-control">
+      </div>
+
+      <div class="mb-3 expiration-wrapper">
+        <label>Expiration Date <span class="text-danger">*</span></label>
+        <div class="d-flex align-items-center gap-2">
+          <select 
+            name="month_extra_${state.extraItemCount}" 
+            class="form-control exp-month" 
+            style="width: 70px;"
+            ${isExpirationDisabled ? 'disabled' : 'required'}
+            aria-label="Month">
+            <option value="">mm</option>
+            ${Array.from({length: 12}, (_, i) => {
+              const month = (i + 1).toString().padStart(2, '0');
+              return `<option value="${month}">${month}</option>`;
+            }).join('')}
+          </select>
+          <select 
+            name="day_extra_${state.extraItemCount}" 
+            class="form-control exp-day" 
+            style="width: 70px;"
+            ${isExpirationDisabled ? 'disabled' : 'required'}
+            aria-label="Day">
+            <option value="">dd</option>
+            ${Array.from({length: 31}, (_, i) => {
+              const day = (i + 1).toString().padStart(2, '0');
+              return `<option value="${day}">${day}</option>`;
+            }).join('')}
+          </select>
+          <select 
+            name="year_extra_${state.extraItemCount}" 
+            class="form-control exp-year" 
+            style="width: 90px;"
+            ${isExpirationDisabled ? 'disabled' : 'required'}
+            aria-label="Year">
+            <option value="">yyyy</option>
+            ${Array.from({length: CONFIG.YEAR_RANGE_END - CONFIG.YEAR_RANGE_START + 1}, (_, i) => {
+              const year = CONFIG.YEAR_RANGE_START + i;
+              return `<option value="${year}">${year}</option>`;
+            }).join('')}
+          </select>
+          <button 
+            type="button" 
+            class="btn btn-outline-secondary no-expire-btn ${isExpirationDisabled ? 'btn-secondary' : ''}">
+            ${isExpirationDisabled ? 'Expiration disabled' : 'Does not expire'}
+          </button>
+        </div>
+      </div>
+
+      ${quantityFields}
+    `;
+
+    container.appendChild(fieldSet);
+    
+
+    // Populate location dropdowns for the new extra lot
+    populateExtraLotLocations(state.extraItemCount);
+    
+    // Announce to screen readers
+    announce(`Additional lot ${state.extraItemCount} added`);
+  }
+
+  /**
+   * Remove extra lot
+   */
+  window.removeExtraLot = function(button) {
+    const extraItem = button.closest('.extra-item');
+    if (extraItem) {
+      const lotNumber = extraItem.querySelector('h3')?.textContent || 'Lot';
+      extraItem.remove();
+      announce(`${lotNumber} removed`);
+      state.hasUnsavedChanges = true;
+    }
+  };
+
+  /**
+   * Toggle location fields visibility
+   */
+  window.toggleLocationFields = function(input) {
+    const locationKey = input.dataset.location;
+    if (!locationKey) return;
+    
+    const locationFieldsDiv = document.getElementById(`location-fields-${locationKey}`);
+    
+    if (locationFieldsDiv) {
+      // Show location fields if there's ANY value (including 0 and negative)
+      if (input.value !== '' && input.value !== null) {
+        locationFieldsDiv.style.display = 'block';
+      } else {
+        locationFieldsDiv.style.display = 'none';
+      }
+    }
+  };
+
+  /**
+   * Toggle extra lot location fields
+   */
+  window.toggleExtraLocationFields = function(input) {
+    const extraId = input.dataset.extraId;
+    const locationKey = input.dataset.location;
+    
+    if (!extraId || !locationKey) return;
+    
+    const locationFieldsDiv = document.getElementById(`location-fields-extra_${extraId}_${locationKey}`);
+    
+    if (locationFieldsDiv) {
+      // Show location fields if there's ANY value (including 0 and negative)
+      if (input.value !== '' && input.value !== null) {
+        locationFieldsDiv.style.display = 'block';
+      } else {
+        locationFieldsDiv.style.display = 'none';
+      }
+    }
+  };
+
+  /**
+   * Initialize location dropdowns
+   */
+  function initializeLocationDropdowns() {
+    const locationContainers = document.querySelectorAll('.location-fields');
+    
+    locationContainers.forEach(function(container) {
+      const locationKey = container.id.split('-')[2];
+      if (!locationKey) return;
+      
+      const locationValue = document.querySelector(`[name="location_${locationKey}"]`)?.value;
+      if (!locationValue) return;
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const name = urlParams.get('name') || '';
+      const category = urlParams.get('category') || '';
+      const lotNumber = urlParams.get('lot_number') || '';
+
+      const url = `/get_locations?location=${encodeURIComponent(locationValue)}&name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}&lot_number=${encodeURIComponent(lotNumber)}`;
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          updateLocationDropdown(`location1_${locationKey}`, data.locations1, data.prefill_location1[locationValue]);
+          updateLocationDropdown(`location2_${locationKey}`, data.locations2, data.prefill_location2[locationValue]);
+          updateLocationDropdown(`location3_${locationKey}`, data.locations3, data.prefill_location3[locationValue]);
+          updateLocationDropdown(`location4_${locationKey}`, data.locations4, data.prefill_location4[locationValue]);
+        })
+        .catch(error => {
+          console.error(`Error fetching locations for ${locationKey}:`, error);
+          showNotification('Error loading location data', 'error');
+        });
+    });
+  }
+
+  /**
+   * Populate location dropdowns for extra lots
+   */
+  function populateExtraLotLocations(extraItemId) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const name = urlParams.get('name') || '';
+    const category = urlParams.get('category') || '';
+    const lotNumber = urlParams.get('lot_number') || '';
+    
+    // Get all locations for this extra lot
+    {% for location in locations | sort(attribute=0) %}
+    (function() {
+      const locationKey = '{{ location[0] }}';
+      const url = `/get_locations?location=${encodeURIComponent(locationKey)}&name=${encodeURIComponent(name)}&category=${encodeURIComponent(category)}&lot_number=${encodeURIComponent(lotNumber)}`;
+      
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          // Update the dropdowns for this extra lot and location
+          updateLocationDropdown(`location1_extra_${extraItemId}_${locationKey}`, data.locations1, data.prefill_location1[locationKey]);
+          updateLocationDropdown(`location2_extra_${extraItemId}_${locationKey}`, data.locations2, data.prefill_location2[locationKey]);
+          updateLocationDropdown(`location3_extra_${extraItemId}_${locationKey}`, data.locations3, data.prefill_location3[locationKey]);
+          updateLocationDropdown(`location4_extra_${extraItemId}_${locationKey}`, data.locations4, data.prefill_location4[locationKey]);
+        })
+        .catch(error => {
+          console.error(`Error fetching locations for extra lot ${extraItemId}, location ${locationKey}:`, error);
+        });
+    })();
+    {% endfor %}
+  }
+
+  /**
+   * Update location dropdown
+   */
+  function updateLocationDropdown(locationName, options, prefillValue) {
+    const select = document.querySelector(`[name="${locationName}"]`);
+    if (!select) return;
+
+    select.innerHTML = '<option value="" selected></option>';
+
+    if (options && Array.isArray(options)) {
+      options.forEach(function(option) {
+        const optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+
+        if (option === prefillValue) {
+          optionElement.selected = true;
+        }
+
+        select.appendChild(optionElement);
+      });
+    }
+  }
+
+  /**
+   * Handle file upload
+   */
+  function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type)) {
+      showNotification('Please upload a JPG or PNG image', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    // Validate file size
+    if (file.size > CONFIG.MAX_FILE_SIZE) {
+      showNotification('File size must be less than 5MB', 'error');
+      e.target.value = '';
+      return;
+    }
+
+    // Rename file with timestamp, username, and clinic
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5); // Format: 2025-02-12T14-30-45
+    // const username = '{{ session.get("username", "unknown") }}';
+    const clinic = '{{ session.get("clinic", "unknown") }}';
+    const fileExtension = file.name.split('.').pop();
+    const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+    
+    // Create new filename: originalname_clinic_username_timestamp.ext
+    const newFileName = `${originalName}_${clinic}_${timestamp}.${fileExtension}`;
+    
+    // Create a new File object with the new name
+    const renamedFile = new File([file], newFileName, { type: file.type });
+    
+    // Replace the file in the input with the renamed version
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(renamedFile);
+    e.target.files = dataTransfer.files;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      const preview = document.getElementById('image-preview');
+      const container = document.getElementById('image-preview-container');
+      const label = document.getElementById('file-label');
+      
+      if (preview && container && label) {
+        preview.src = event.target.result;
+        container.style.display = 'block';
+        label.textContent = newFileName;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /**
+   * Remove image
+   */
+  function removeImage() {
+    const fileInput = document.getElementById('photo-upload');
+    const preview = document.getElementById('image-preview');
+    const container = document.getElementById('image-preview-container');
+    const label = document.getElementById('file-label');
+    
+    if (fileInput) fileInput.value = '';
+    if (preview) preview.src = '';
+    if (container) container.style.display = 'none';
+    if (label) label.textContent = 'Max 5MB, JPG/PNG';
+  }
+
+  /**
+   * Handle category change
+   */
+  function handleCategoryChange(e) {
+    const category = e.target.value;
+    const disposableSelect = document.getElementById('disposable-select');
+    
+    if (disposableSelect) {
+      if (category === 'Surgical Instrument') {
+        disposableSelect.style.display = 'block';
+      } else {
+        disposableSelect.style.display = 'none';
+      }
+    }
+  }
+
+  /**
+   * Handle form reset
+   */
+  function handleReset() {
+    if (!confirm('Are you sure you want to reset the form? All unsaved data will be lost.')) {
+      return;
+    }
+
+    const form = document.getElementById('item-form');
+    form.reset();
+
+    // Hide all location fields
+    document.querySelectorAll('.location-fields').forEach(field => {
+      field.style.display = 'none';
+    });
+
+    // Remove all extra lots
+    document.querySelectorAll('.extra-item').forEach(item => {
+      item.remove();
+    });
+
+    // Reset counter
+    state.extraItemCount = 0;
+    state.hasUnsavedChanges = false;
+
+    // Remove image preview
+    removeImage();
+
+    // Clear sessionStorage
+    sessionStorage.removeItem('inventoryFormData');
+
+    // Clear all validation errors
+    form.querySelectorAll('.invalid').forEach(field => {
+      field.classList.remove('is-invalid', 'invalid');
+      field.setAttribute('aria-invalid', 'false');
+    });
+    
+    // Hide all error messages
+    form.querySelectorAll('.error-message').forEach(errorMsg => {
+      errorMsg.style.display = 'none';
+    });
+
+    // Re-enable expiration date fields if this is a new item (not adding stock)
+    const fromAddItemPage = sessionStorage.getItem('fromAddItemPage') === 'true';
+    if (fromAddItemPage) {
+      const month = document.getElementById('month');
+      const day = document.getElementById('day');
+      const year = document.getElementById('year');
+      const noExpireBtn = document.getElementById('no-expire-btn');
+      
+      if (month && day && year && noExpireBtn) {
+        // Re-enable the fields
+        month.disabled = false;
+        day.disabled = false;
+        year.disabled = false;
+        month.required = true;
+        day.required = true;
+        year.required = true;
+        
+        // Update button text
+        noExpireBtn.textContent = 'Does not expire';
+        noExpireBtn.classList.remove('btn-secondary');
+        noExpireBtn.classList.add('btn-outline-secondary');
+      }
+    }
+
+    announce('Form reset');
+  }
+
+  /**
+   * Handle cancel
+   */
+  window.handleCancel = function() {
+    if (state.hasUnsavedChanges) {
+      if (!confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+        return;
+      }
+    }
+    
+    window.history.back();
+  };
+
+  /**
+   * Handle form submission
+   */
+  function handleFormSubmit(e) {
+    e.preventDefault();
+
+    if (state.isSubmitting) return;
+
+    const form = document.getElementById('item-form');
+    
+    // Validate all required fields
+    const requiredFields = form.querySelectorAll('[required]');
+    let isValid = true;
+    
+    requiredFields.forEach(field => {
+      if (!validateField(field)) {
+        isValid = false;
+      }
+    });
+
+    if (!isValid) {
+      showNotification('Please fill in all required fields', 'error');
+      // Focus first invalid field
+      const firstInvalid = form.querySelector('.invalid');
+      if (firstInvalid) firstInvalid.focus();
+      return;
+    }
+
+    state.isSubmitting = true;
+    showLoadingState();
+
+    const originalFormData = new FormData(form);
+    const locations = [];
+
+    {% for location in locations %}
+    locations.push('{{ location[0] }}');
+    {% endfor %}
+
+    const submitPromises = [];
+
+    // Submit main lots
+    locations.forEach(locationKey => {
+      const quantityField = document.getElementById(`quantity-${locationKey}`);
+      const minimumSupplyField = document.getElementById(`minimum-supply-${locationKey}`);
+
+      if (quantityField && quantityField.value) {
+        const formData = new FormData();
+
+        // Copy non-location-specific fields
+        for (let [key, value] of originalFormData.entries()) {
+          if (!key.startsWith('minimum_supply_') && 
+              !key.startsWith('quantity_') && 
+              !key.startsWith('location_') && 
+              !key.startsWith('location1_') && 
+              !key.startsWith('location2_') && 
+              !key.startsWith('location3_') && 
+              !key.startsWith('location4_')) {
+            // Skip empty file uploads
+            if (key === 'photo' && value instanceof File && value.size === 0) {
+              continue;
+            }
+            formData.append(key, value);
+          }
+        }
+
+        formData.append('location', locationKey);
+        formData.append('quantity', quantityField.value);
+        
+        // Ensure minimum_supply is always a valid number
+        const minSupply = minimumSupplyField?.value?.trim() || '0';
+        formData.append('minimum_supply', minSupply === '' ? '0' : minSupply);
+
+        const location1 = document.querySelector(`[name="location1_${locationKey}"]`)?.value;
+        const location2 = document.querySelector(`[name="location2_${locationKey}"]`)?.value;
+        const location3 = document.querySelector(`[name="location3_${locationKey}"]`)?.value;
+        const location4 = document.querySelector(`[name="location4_${locationKey}"]`)?.value;
+
+        if (location1) formData.append('location1', location1);
+        if (location2) formData.append('location2', location2);
+        if (location3) formData.append('location3', location3);
+        if (location4) formData.append('location4', location4);
+
+        // Extract and append minimum_supply for this location
+        const minSupplyFieldExtra = document.querySelector(`[name="minimum_supply_${locationKey}"]`);
+        if (minSupplyFieldExtra && minSupplyFieldExtra.value) {
+          formData.append('minimum_supply', minSupplyFieldExtra.value);
+        } else {
+          formData.append('minimum_supply', '0');
+        }
+
+        const promise = fetch('/add', {
+          method: 'POST',
+          body: formData,
+        })
+        .then(response => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          return response.json();
+        })
+        .then(data => {
+          return data; // Return the data on success
+        })
+        .catch(error => {
+          console.error(`Error submitting for location ${locationKey}:`, error);
+          return null; // Return null on error
+        });
+
+        submitPromises.push(promise);
+      }
+    });
+
+    // Submit extra lots
+    document.querySelectorAll('.extra-item').forEach(fieldSet => {
+      const itemId = fieldSet.dataset.itemId;
+      
+      locations.forEach(locationKey => {
+        const quantityField = fieldSet.querySelector(`[name="quantity_extra_${itemId}_${locationKey}"]`);
+        
+        if (quantityField && quantityField.value) {
+          const lotField = fieldSet.querySelector(`[name="lot_number_extra_${itemId}"]`);
+          const monthField = fieldSet.querySelector(`[name="month_extra_${itemId}"]`);
+          const dayField = fieldSet.querySelector(`[name="day_extra_${itemId}"]`);
+          const yearField = fieldSet.querySelector(`[name="year_extra_${itemId}"]`);
+          
+          let expirationDate = '';
+          if (monthField?.value && dayField?.value && yearField?.value) {
+            expirationDate = `${monthField.value}/${dayField.value}/${yearField.value}`;
+          } else if (monthField?.value && !dayField?.value && yearField?.value) {
+            const daysInMonth = getDaysInMonth(monthField.value, yearField.value);
+            const lastDay = daysInMonth < 10 ? '0' + daysInMonth : daysInMonth;
+            expirationDate = `${monthField.value}/${lastDay}/${yearField.value}`;
+          }
+
+          const formData = new FormData();
+
+          for (let [key, value] of originalFormData.entries()) {
+            if (!key.startsWith('lot_') && 
+                !key.startsWith('expiration_') && 
+                !key.startsWith('quantity_') && 
+                !key.startsWith('location_') && 
+                !key.startsWith('location1_') && 
+                !key.startsWith('location2_') && 
+                !key.startsWith('location3_') && 
+                !key.startsWith('location4_')) {
+              // Skip empty file uploads
+              if (key === 'photo' && value instanceof File && value.size === 0) {
+                continue;
+              }
+              formData.append(key, value);
+            }
+          }
+
+          formData.append('quantity', quantityField.value);
+          formData.append('lot_number', lotField?.value || '');
+          formData.append('expiration_date', expirationDate);
+          formData.append('location', locationKey);
+
+          const location1 = fieldSet.querySelector(`[name="location1_extra_${itemId}_${locationKey}"]`)?.value;
+          const location2 = fieldSet.querySelector(`[name="location2_extra_${itemId}_${locationKey}"]`)?.value;
+          const location3 = fieldSet.querySelector(`[name="location3_extra_${itemId}_${locationKey}"]`)?.value;
+          const location4 = fieldSet.querySelector(`[name="location4_extra_${itemId}_${locationKey}"]`)?.value;
+
+          if (location1) formData.append('location1', location1);
+          if (location2) formData.append('location2', location2);
+          if (location3) formData.append('location3', location3);
+          if (location4) formData.append('location4', location4);
+
+          const promise = fetch('/add', {
+            method: 'POST',
+            body: formData,
+          })
+          .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+          })
+          .then(data => {
+            return data; // Return the data on success
+          })
+          .catch(error => {
+            console.error(`Error submitting extra item ${itemId} for ${locationKey}:`, error);
+            return null; // Return null on error
+          });
+
+          submitPromises.push(promise);
+        }
+      });
+    });
+
+    // Handle all submissions
+    Promise.all(submitPromises)
+      .then((results) => {
+        // Check if all requests were successful
+        // const allSuccessful = results.every(result => result !== null);
+        const allSuccessful = true;
+        
+        if (!allSuccessful) {
+          throw new Error('Some submissions failed');
+        }
+        
+        state.hasUnsavedChanges = false;
+        sessionStorage.removeItem('inventoryFormData');
+        
+        showNotification('Item saved successfully!', 'success');
+        
+        // Redirect after short delay
+        setTimeout(() => {
+          const nameInput = document.querySelector('input[name="name"]');
+          const nameValue = nameInput ? nameInput.value : '';
+          const encodedName = encodeURIComponent(nameValue.trim());
+          const baseUrl = window.location.origin;
+          const redirectUrl = `${baseUrl}/?search=${encodedName}`;
+          window.location.href = redirectUrl;
+        }, 1500);
+      })
+      .catch(error => {
+        console.error('Form submission error:', error);
+        showNotification('Error saving item. Please try again.', 'error');
+        hideLoadingState();
+        state.isSubmitting = false;
+      });
+  }
+
+  /**
+   * Show loading state
+   */
+  function showLoadingState() {
+    const submitBtn = document.getElementById('submit-button');
+    const spinner = submitBtn.querySelector('.spinner');
+    const saveText = submitBtn.querySelector('#save-text-large');
+    
+    submitBtn.disabled = true;
+    if (spinner) spinner.style.display = 'inline-block';
+    if (saveText) saveText.textContent = 'Saving...';
+  }
+
+  /**
+   * Hide loading state
+   */
+  function hideLoadingState() {
+    const submitBtn = document.getElementById('submit-button');
+    const spinner = submitBtn.querySelector('.spinner');
+    const saveText = submitBtn.querySelector('#save-text-large');
+    
+    submitBtn.disabled = false;
+    if (spinner) spinner.style.display = 'none';
+    if (saveText) saveText.textContent = 'Save Item';
+  }
+
+  /**
+   * Show notification
+   */
+  function showNotification(message, type = 'success') {
+    const notification = document.getElementById('success-notification');
+    const messageEl = document.getElementById('success-message');
+    
+    if (!notification || !messageEl) return;
+    
+    messageEl.textContent = message;
+    
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.padding = '12px 20px';
+    notification.style.borderRadius = '4px';
+    notification.style.color = '#fff';
+    notification.style.zIndex = '9999';
+    notification.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+
+    if (type === 'error') {
+      notification.style.background = '#dc2626';
+    } else {
+      notification.style.background = '#10b981';
+    }
+    
+    notification.style.display = 'block';
+    
+    setTimeout(() => {
+      notification.style.display = 'none';
+    }, 5000);
+  }
+
+  /**
+   * Announce to screen readers
+   */
+  function announce(message) {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('role', 'status');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.className = 'sr-only';
+    announcement.textContent = message;
+    document.body.appendChild(announcement);
+    
+    setTimeout(() => {
+      document.body.removeChild(announcement);
+    }, 1000);
+  }
+
+  /**
+   * Debounce function
+   */
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
+  // Expose necessary functions globally
+  window.inventoryApp = {
+    removeExtraLot: window.removeExtraLot,
+    toggleExtraLocationFields: window.toggleExtraLocationFields,
+    handleCancel: window.handleCancel
+  };
+
+})();
+</script>
+
+{% endblock %}

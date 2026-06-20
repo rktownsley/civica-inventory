@@ -1,0 +1,42 @@
+[
+    {
+        "username": "tepati",
+        "password": "Tepati74",
+        "first_name": "tepati",
+        "last_name": "tepati",
+        "email": "tepati@gmail.com",
+        "role": "supervisor",
+        "clinic_code": "TEPATI",
+        "clinic_affiliation": "inventory"
+    },
+    {
+        "username": "KLOHC",
+        "password": "12345",
+        "first_name": "klohc",
+        "last_name": "klohc",
+        "email": "klohc@gmail.com",
+        "role": "supervisor",
+        "clinic_code": "KLOHC",
+        "clinic_affiliation": "inventory"
+    },
+    {
+        "username": "Riyan",
+        "password": "00000",
+        "first_name": "Riyan",
+        "last_name": "Townsley",
+        "email": "riyan@gmaio.com",
+        "role": "admin",
+        "clinic_code": "TEPATI",
+        "clinic_affiliation": "inventory"
+    },
+    {
+        "username": "demo",
+        "password": "demo",
+        "first_name": "demo",
+        "last_name": "demo",
+        "email": "demo@example.com",
+        "role": "admin",
+        "clinic_code": "TEST",
+        "clinic_affiliation": "test"
+    }
+]

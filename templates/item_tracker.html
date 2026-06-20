@@ -1,0 +1,163 @@
+<!--
+<meta name="format-detection" content="telephone=no">
+
+<style>
+  body {
+    /* background-color: #0d6efd;
+    color: #000; */
+  }
+
+  .log-container {
+    height: calc(100vh - 150px); /* fills most of the screen */
+    overflow-x: auto;  /* allow horizontal scroll if table is too wide */
+    overflow-y: auto;  /* allow vertical scroll */
+    /* border: 1px solid #444; */
+    border-radius: 5px;
+    -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+    /* background-color: #1e1e1e; so borders don’t look like they move */
+    width: 100%; /* ensures container stays fixed relative to screen */
+  }
+
+  .log-table {
+    /* background-color: #1e1e1e;
+    color: #f5f5f5; */
+    border-radius: 5px;
+    /* font-family: monospace; */
+    font-size: 0.9rem;
+    margin-bottom: 0; /* so it fits nicely in the container */
+    min-width: 600px;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .log-table th {
+    /* background-color: #333; */
+    background-color: #bbb;
+    color: #0d6efd; /* Bootstrap primary blue */
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    position: sticky;
+    top: 0;
+    z-index: 10; /* keep it above table rows */
+    white-space: nowrap;
+  }
+
+  .log-table td, .log-table th {
+    border: 1px solid #444;
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+
+  .log-table .date {
+    /* color: #bbb; */
+    white-space: nowrap;
+  }
+
+  .log-table .time {
+    white-space: nowrap;
+  }
+
+  .log-table .user {
+    /* color: #0f0; green to stand out */
+    /* font-weight: bold; */
+  }
+
+  .log-table .notes {
+    white-space: nowrap;
+  }
+
+  .log-table .text {
+    color: #fff;
+  }
+
+  .log-table .success .text {
+    /* color: #0f0; */
+  }
+</style>
+
+<h2>Medication Log</h2>
+<div class="table-responsive log-container" id="log-container">
+  <table class="table log-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Medication</th>
+        <th>Quantity</th>
+        <th>Action Type</th>
+        <th>User</th>
+        <th>Time</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for msg in messages %}
+      <tr class="{{ msg.category }}">
+        <td class="date">{{ msg.ts.split(' ')[0] }}</td>
+        <td class="name">{{ msg.name }}</td>
+        <td class="amount">{{ msg.amount }}</td>
+        <td class="action">{{ msg.action }}</td>
+        <td class="user">{{ msg.user }}</td>
+        <td class="time">{{ msg.ts.split(' ')[1][:5] }}</td>
+        <td class="notes">{{ msg.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("log-container");
+    container.scrollTop = container.scrollHeight; // scroll to bottom
+  });
+</script>
+-->
+
+
+{% extends "base.html" %}
+{% block body_class %}page-item-tracker{% endblock %}
+{% block content %}
+
+<meta name="format-detection" content="telephone=no">
+
+
+
+<h1>Item Log</h1>
+<div class="table-responsive log-container" id="log-container">
+  <table class="table table-striped log-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Name</th>
+        <th>Quantity</th>
+        <th>Action</th>
+        <th>User</th>
+        <th>Time</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for msg in messages %}
+      <tr class="{{ msg.category }}">
+        <td class="date">{{ msg.ts.split(' ')[0] }}</td>
+        <td class="name">{{ msg.name }}</td>
+        <td class="amount">{{ msg.amount }}</td>
+        <td class="action">{{ msg.action }}</td>
+        <td class="user">{{ msg.user }}</td>
+        <td class="time">{{ msg.ts.split(' ')[1][:5] }}</td>
+        <td class="notes">{{ msg.notes }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const container = document.getElementById("log-container");
+    container.scrollTop = container.scrollHeight; // scroll to bottom
+  });
+</script>
+
+{% endblock %}

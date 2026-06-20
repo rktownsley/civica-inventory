@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% block body_class %}page-restock-inventory{% endblock %}
+{% block content %}
+<h1>Refills</h1>
+
+<form method="GET" action="{{ url_for('restock_inventory') }}" class="mb-3">
+
+    <!-- Sort Dropdown (New)-->
+    <select name="filter" class="form-control mb-2" id="sort-option">
+        <option value="">Apply Filter</option>
+        <option value="A" {% if request.args.get('filter') == 'A' %}selected{% endif %}>filter by date updated</option>
+        <option value="C" {% if request.args.get('filter') == 'C' %}selected{% endif %}>filter by category</option>
+        <option value="D" {% if request.args.get('filter') == 'D' %}selected{% endif %}>filter by supplier</option>
+        <option value="E" {% if request.args.get('filter') == 'E' %}selected{% endif %}>filter by low supply</option>
+    </select>
+
+
+    <!-- Date Updated Dropdown (Full Date Picker) -->
+    <div id="last_edit-dropdown-container" style="display: none;">
+        <input type="date" name="last_edit" class="form-control mb-2" id="last_edit-select" value="{{ request.args.get('last_edit') }}">
+    </div>
+
+    <!-- Category Dropdown (Hidden by default) -->
+    <div id="category-dropdown-container" style="display: none;">
+        <select name="category" class="form-control mb-2" id="category-select">
+            <option value="">Select category</option>
+            {% for category in categories %}
+                <option value="{{ category[0] }}" {% if request.args.get('category') == category[0] %}selected{% endif %}>
+                    {{ category[0] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Supplier Dropdown (Hidden by default) -->
+    <div id="supplier-dropdown-container" style="display: none;">
+        <select name="supplier" class="form-control mb-2" id="supplier-select">
+            <option value="">Select supplier</option>
+            {% for supplier in suppliers %}
+                <option value="{{ supplier[0] }}" {% if request.args.get('supplier') == supplier[0] %}selected{% endif %}>
+                    {{ supplier[0] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+
+
+    <!-- Search Bar -->
+    <input type="text" name="search" id="search" placeholder="Search..." class="form-control mb-2" value="{{ request.args.get('search', '') }}">
+    <button type="submit" class="btn btn-primary mt-2">Search</button>
+
+    <!-- Clear Button (New)-->
+    <a href="{{ url_for('restock_inventory') }}" class="btn btn-light mt-2 ml-2">Clear</a>
+
+
+    <button id="sendRestockEmailBtn" style="display: none">Send Restock Email</button>
+
+    <script>
+        document.getElementById("sendRestockEmailBtn").addEventListener("click", function () {
+            fetch("/get_items")
+                .then(response => response.json())
+                .then(items => {
+                    const locationEmails = {
+                        "Tepati": "rktownsley@ucdavis.edu,tepati@example.com",
+                        "Knights Landing": "rktownsley@ucdavis.edu,kl@example.com"
+                    };
+
+                    // Initialize grouped map with empty arrays for each location
+                    const grouped = {};
+                    for (const loc in locationEmails) {
+                        grouped[loc] = [];
+                    }
+
+                    // Group restock items by location
+                    items.forEach(item => {
+                        if (item.restock === 1 && item.location) {
+                            const location = item.location.trim();
+                            if (grouped[location]) {
+                                grouped[location].push(item.name);
+                            }
+                        }
+                    });
+
+                    // Send one email per location, even if item list is empty
+                    for (const location in locationEmails) {
+                        const recipient = locationEmails[location];
+                        const itemsToSend = grouped[location] || [];
+
+                        fetch("/send_restock_email", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                recipient: recipient,
+                                items: itemsToSend,
+                                location: location
+                            })
+                        });
+                    }
+                })
+                .catch(error => console.error("Error fetching items:", error));
+        });
+    </script>
+
+
+</form>
+
+<!-- Autocomplete Suggestions Box -->
+<div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+
+{% if not items %}
+    <div class="alert alert-warning mt-3">
+        No items matched your search.
+    </div>
+{% else %}
+<!-- Wrapper for the table to enable horizontal scrolling -->
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>AKA</th>
+                <th>Status</th>
+                <th>Quantity</th>
+                <th>Unit</th>
+                <th style="white-space: nowrap;">Expiration Date</th>
+                <th>Site</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr onclick="window.location.href='{{ url_for('view_item', item_id=item['id']) }}?search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}';"
+            style="cursor: pointer;"
+            id="row-{{ item['id'] }}">
+
+                <td id="name-{{ item['id'] }}"
+
+
+                    {% set style = "" %}
+
+
+                    {% if item['expiration_date'] %}
+                        {% set expiration_style = "" %}
+                        {% if (item['expiration_date'][6:]|length == 4 and item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] < current_date) or
+                            (item['expiration_date'][6:]|length == 2 and ('20' + item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5]) < current_date) %}
+                            {% set expiration_style = "color: red; font-weight: bold;" %}
+                        {% elif (item['expiration_date'][6:]|length == 4 and item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] < one_month_date) or
+                                (item['expiration_date'][6:]|length == 2 and ('20' + item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5]) < one_month_date) %}
+                            {% set expiration_style = "color: orange; font-weight: bold;" %}
+                        {% endif %}
+
+                        {% if expiration_style %}
+                            {% set style = style + expiration_style %}
+                        {% endif %}
+                    {% endif %}
+
+                    style="{{ style }}">
+                    {{ item['name'] }}
+                </td>
+
+                <td>
+                    {{ item['aka'] }}
+                </td>
+
+                <td>
+                    {{ item['status'] }}
+                </td>
+
+
+                <td {% if item['quantity']|int < item['minimum_supply']|int %} style="color: red; font-weight: bold;" {% endif %}>
+                    {{ item['quantity'] }}
+                    {% if item['quantity']|int < item['minimum_supply']|int %}
+                        <span style="color: red; font-weight: bold;">(Low)</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ item['dispense_used'] }}
+                </td>
+                <td>
+                    {{ item['expiration_date'] }}
+                </td>
+                <td>
+                    {% set short_location = 'KL' if item['location'] == 'Knights Landing' else item['location'] %}
+                    {{ short_location }}
+                </td>
+                <td>
+                    <!--a href="{{ url_for('view_item', item_id=item['id']) }}?search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}" class="btn btn-info btn-sm" id="view-button-{{ item['id'] }}">View</a-->
+
+                    <script>
+                        document.getElementById('view-button-{{ item['id'] }}').addEventListener('click', function(event) {
+                            // Capture the current URL hash when the view button is clicked
+                            var hash = window.location.hash;
+
+                            // Check if the hash exists and contains 'scroll='
+                            var currentHash = "";
+                            if (hash && hash.startsWith('#scroll=')) {
+                                currentHash = hash.split('=')[1];  // Capture the value after 'scroll='
+                                console.log('Captured scroll position:', currentHash);  // Debugging log
+                            } else {
+                                currentHash = "scroll=0";  // Default to scroll=0 if no hash found
+                            }
+
+                            // Send the captured scroll position to the Flask backend
+                            fetch('/save_scroll_position', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'  // Ensure the header is correct
+                                },
+                                body: JSON.stringify({ current_hash: currentHash })  // Send the data as JSON
+                            })
+                            .then(response => response.json())
+                            .then(data => console.log(data))
+                            .catch(error => console.error('Error:', error));
+                        });
+                    </script>
+
+                    <!-- Restock Button -->
+                    <form id="restock-form-{{ item['id'] }}" action="{{ url_for('mark_restock', item_id=item['id']) }}" method="POST">
+                        <!-- Unique name and id for each hidden input -->
+                        <input type="hidden" name="current_hash_{{ item['id'] }}" id="current_hash_{{ item['id'] }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">
+                            {% if item['restock'] %} Cancel {% else %} Restock {% endif %}
+                        </button>
+                    </form>
+
+                    <script>
+                        // Attach submit event for all forms
+                        document.getElementById('restock-form-{{ item['id'] }}').addEventListener('submit', function(event) {
+                            // Capture the current URL hash when the restock button is clicked
+                            var hash = window.location.hash;
+
+                            // Check if the hash exists and contains 'scroll='
+                            if (hash && hash.startsWith('#scroll=')) {
+                                var scrollValue = hash.split('=')[1];  // Capture the value after 'scroll='
+                                console.log('Captured scroll position:', scrollValue);  // Debugging log
+                                document.getElementById('current_hash_{{ item['id'] }}').value = 'scroll=' + scrollValue;  // Set the value of the unique hidden input
+                                console.log('Current hash value:', document.getElementById('current_hash_{{ item['id'] }}').value); // Debugging
+                            } else {
+                                // If no hash or no scroll parameter, set it to empty string
+                                document.getElementById('current_hash_{{ item['id'] }}').value = "scroll=0";
+                            }
+                        });
+                    </script>
+
+                    <!-- {% if(session.get('user') == 'admin') %}
+                    <a href="{{ url_for('delete_item', item_id=item['id']) }}?search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}" class="btn btn-danger btn-sm" onclick="return confirmDelete();">Delete</a>
+                    {% endif %} -->
+
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Add the following JavaScript function to handle the "Restock" button click -->
+<script type="text/javascript">
+    function markRestock(itemId) {
+        // Toggle red color and strikethrough for the name of the item
+        const nameElement = document.getElementById('name-' + itemId);
+        if (nameElement) {
+            nameElement.style.color = 'red';
+            nameElement.style.textDecoration = 'line-through';
+        }
+    }
+</script>
+
+
+<script>
+    // Function to restore scroll position from the URL
+    function restoreScrollPosition() {
+        const hash = window.location.hash;
+
+        // Check if the hash contains 'scroll=' and extract the value
+        if (hash && hash.startsWith('#scroll=')) {
+            const scrollPos = parseInt(hash.split('scroll=')[1], 10);
+
+            if (!isNaN(scrollPos)) {
+                // Scroll to the position specified in the URL hash
+                window.scrollTo(0, scrollPos);
+            }
+        }
+    }
+
+    // Function to update the scroll position in the URL as you scroll
+    function updateScrollPosition() {
+        const scrollPosition = window.scrollY;
+
+        // Update the URL with the current scroll position
+        // We use pushState so that it doesn't reload the page
+        history.replaceState(null, null, `#scroll=${scrollPosition}`);
+    }
+
+    // Update scroll position in URL when scrolling
+    window.addEventListener('scroll', updateScrollPosition);
+
+    // Call restoreScrollPosition when the page is loaded or hash is changed
+    window.addEventListener('load', restoreScrollPosition);
+    window.addEventListener('hashchange', restoreScrollPosition);
+
+</script>
+
+
+
+<!-- Add confirmation if delete buton is pressed -->
+<script>
+    function confirmDelete() {
+        return confirm('Are you sure you want to delete this item? This action cannot be undone.');
+    }
+</script>
+
+<!-- Add jQuery and your custom JS for autocomplete -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Bind to the input event on the search bar
+        $('#search').on('input', function() {
+            var query = $(this).val();  // Get the value entered by the user
+
+            // If query is not empty, make an AJAX request for autocomplete suggestions
+            if (query.length > 1) {
+                $.get('/autocomplete', { query: query }, function(data) {
+                    var suggestions = data.suggestions;  // The returned suggestions
+                    $('#autocomplete-suggestions').empty();  // Clear previous suggestions
+
+                    // Restock duplicate suggestions by converting array to a Set and back to an array
+                    suggestions = [...new Set(suggestions)];
+
+                    // If there are suggestions, display them
+                    if (suggestions.length > 0) {
+                        suggestions.forEach(function(suggestion) {
+                            $('#autocomplete-suggestions').append('<div class="suggestion-item">' + suggestion + '</div>');
+                        });
+                    } else {
+                        $('#autocomplete-suggestions').append('<div>No suggestions found</div>');
+                    }
+                }).fail(function() {
+                    // If the request fails
+                    console.error("Autocomplete request failed");
+                });
+            } else {
+                $('#autocomplete-suggestions').empty();  // Clear suggestions if the input is empty
+            }
+        });
+
+        // Highlight suggestion on hover
+        $(document).on('mouseenter', '.suggestion-item', function() {
+            $(this).addClass('highlighted');
+
+            // Fill the search box with the hovered suggestion
+            $('#search').val($(this).text());
+
+        }).on('mouseleave', '.suggestion-item', function() {
+            $(this).removeClass('highlighted');
+        });
+
+        // When a suggestion is clicked, set it in the input field and clear the suggestions
+        $(document).on('click', '.suggestion-item', function() {
+            var suggestion = $(this).text();
+            $('#search').val(suggestion);
+            $('#autocomplete-suggestions').empty();  // Clear suggestions
+
+            // Trigger the form submission
+            //$('form').submit();  // This submits the form
+        });
+    });
+</script>
+
+<!-- Add CSS for hover highlighting -->
+
+
+<script>
+    // Event listener to show/hide category and supplier dropdown based on sort option or pre-selected values
+    document.addEventListener("DOMContentLoaded", function() {
+        var sortOption = document.getElementById("sort-option").value; // Get the selected sort option
+        var categoryDropdownContainer = document.getElementById("category-dropdown-container");
+        var supplierDropdownContainer = document.getElementById("supplier-dropdown-container");
+        var lastEditDropdownContainer = document.getElementById("last_edit-dropdown-container");
+
+        var selectedCategory = "{{ request.args.get('category') }}"; // Get selected category from the URL
+        var selectedSupplier = "{{ request.args.get('supplier') }}"; // Get selected supplier from the URL
+        var selectedLastEdit = "{{ request.args.get('last_edit') }}"; // Get selected last edit from the URL
+
+        // Show category dropdown if "Sort by category" is selected or a category is already selected
+        categoryDropdownContainer.style.display = (sortOption === "C" || (selectedCategory !== "" && selectedCategory !== "None")) ? "block" : "none";
+
+        // Show supplier dropdown if "Sort by supplier" is selected or a supplier is already selected
+        supplierDropdownContainer.style.display = (sortOption === "D" || (selectedSupplier !== "" && selectedSupplier !== "None")) ? "block" : "none";
+
+        // Show last_edit dropdown if "Sort by last_edit" is selected or a last_edit is already selected
+        lastEditDropdownContainer.style.display = (sortOption === "A" || (selectedLastEdit !== "" && selectedLastEdit !== "None")) ? "block" : "none";
+    });
+
+    // Add an event listener to dynamically handle sorting option change
+    document.getElementById("sort-option").addEventListener("change", function() {
+        var sortOption = this.value; // Get the selected sort option
+        var categoryDropdownContainer = document.getElementById("category-dropdown-container");
+        var supplierDropdownContainer = document.getElementById("supplier-dropdown-container");
+        var lastEditDropdownContainer = document.getElementById("last_edit-dropdown-container");
+
+        // Show category dropdown if "Sort by category" is selected or a category is selected
+        categoryDropdownContainer.style.display = (sortOption === "C" || ("{{ request.args.get('category') }}" !== "" && "{{ request.args.get('category') }}" !== "None")) ? "block" : "none";
+
+        // Show supplier dropdown if "Sort by supplier" is selected or a supplier is selected
+        supplierDropdownContainer.style.display = (sortOption === "D" || ("{{ request.args.get('supplier') }}" !== "" && "{{ request.args.get('supplier') }}" !== "None")) ? "block" : "none";
+
+        // Show last edit dropdown if "Sort by last edit" is selected or a last edit is selected
+        lastEditDropdownContainer.style.display = (sortOption === "A" || ("{{ request.args.get('last_edit') }}" !== "" && "{{ request.args.get('last_edit') }}" !== "None")) ? "block" : "none";
+    });
+
+    // Automatically submit the form when a category or supplier is selected
+    document.getElementById("category-select").addEventListener("change", function() {
+        this.form.submit();  // Automatically submit the form
+    });
+    document.getElementById("supplier-select").addEventListener("change", function() {
+        this.form.submit();  // Automatically submit the form
+    });
+    document.getElementById("last_edit-select").addEventListener("change", function() {
+        this.form.submit();  // Automatically submit the form
+    });
+
+</script>
+
+<script>
+    window.addEventListener('load', function() {
+        var sortOption = document.getElementById("sort-option").value; // Get the selected sort option from the server
+        var defaultOption = document.getElementById("sort-option").options[0]; // Get the first option (the default one)
+
+        // Change the default dropdown option text based on the selected value
+        if (sortOption === "") {
+            defaultOption.text = "Apply Filter"; // No filter selected
+        } else {
+            defaultOption.text = "Clear Filters"; // Filter applied
+        }
+    });
+
+    document.getElementById("sort-option").addEventListener("change", function() {
+        var sortOption = this.value; // Get the selected sort option
+        var form = this.form; // Reference to the form
+        var defaultOption = this.options[0]; // Get the first option (the default one)
+
+        if (sortOption === "") {
+            // Reset to the default text if no filter is selected
+            defaultOption.text = "Apply Filter";
+
+            // Reset all filters if the default option is selected
+            document.getElementById("category-select").value = "";
+            document.getElementById("supplier-select").value = "";
+            document.getElementById("last_edit-select").value = "";
+            //document.getElementById("search").value = "";
+
+            // Automatically submit the form to reset all filters
+            form.submit();
+        } else {
+            // Change to "Clear Filters" when something else is selected
+            defaultOption.text = "Clear Filters";
+        }
+    });
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+{% block body_class %}page-view-item{% endblock %}
+
+{% block title %}View Item{% endblock %}
+
+{% block content %}
+    <h2>{{ item.name }}</h2>
+
+    
+
+    <table style="margin-bottom: 20px;" class="chart-table">
+        <tr>
+            <th>AKA</th>
+            <td>{{ item.aka }}</td>
+        </tr>
+        {% if item.removed == True %}
+        <tr>
+            <th>Status</th>
+            <td>{{ item.status }}</td>
+        </tr>
+        {% endif %}
+
+        {% if item.removed == False or item.removed == True or item.removed is none %}
+        <tr>
+            <th>Site</th>
+            <td id="location" ondblclick="editLocation()">{{ item.location }}</td>
+        </tr>
+
+        <!-- <tr>
+            <th>Location 1</th>
+            <td>{{ item.location1 }}</td>
+        </tr>
+        <tr>
+            <th>Location 2</th>
+            <td>{{ item.location2 }}</td>
+        </tr>
+        <tr>
+            <th>Location 3</th>
+            <td>{{ item.location3 }}</td>
+        </tr>
+        <tr>
+            <th>Location 4</th>
+            <td>{{ item.location4 }}</td>
+        </tr> -->
+        <!-- <tr>
+        <th>Location</th>
+            <td>
+                <div class="loc">→ {{ item.location1 }}</div>
+                <div class="loc">→ {{ item.location2 }}</div>
+                <div class="loc">→ {{ item.location3 }}</div>
+                <div class="loc">→ {{ item.location4 }}</div>
+            </td>
+        </tr>
+
+        <style>
+        .loc {
+            padding-left: 16px;
+            text-indent: -16px;
+        }
+        </style> -->
+        <tr>
+        <th>Location</th>
+        <td>
+            <div *ngIf="item.location1">{{ item.location1 }}</div>
+            <div *ngIf="item.location2">{{ item.location2 }}</div>
+            <div *ngIf="item.location3">{{ item.location3 }}</div>
+            <div *ngIf="item.location4">{{ item.location4 }}</div>
+        </td>
+        </tr>
+
+        {% endif %}
+
+        <tr>
+            <th>Quantity</th>
+            <td {% if item.quantity|int < item.minimum_supply|int %} style="color: red; font-weight: bold;" {% endif %}>
+                {{ item.quantity }}
+                {% if item.quantity|int < item.minimum_supply|int %}
+                    <span style="color: red; font-weight: bold;">(Low)</span>
+                {% endif %}
+            </td>
+        </tr>
+
+        <tr>
+            <th>Dispensed Unit</th>
+            <td>{{ item.dispense_as }}</td>
+        </tr>
+
+        <tr>
+            <th>Category</th>
+            <td>{{ item.category }}</td>
+        </tr>
+        {% if item.category == "Surgical Instrument" %}
+        <tr>
+            <th>Instrument Type</th>
+            <td>{{ item.instrument_type }}</td>
+        </tr>
+        {% endif %}
+
+        <tr>
+            <th>Dosage</th>
+            <td>{{ item.dosage }}</td>
+        </tr>
+        <tr>
+            <th>Form</th>
+            <td>{{ item.form }}</td>
+        </tr>
+        
+        <tr>
+            <th>Unit</th>
+            <td>{{ item.dispense_used }}</td>
+        </tr>
+
+        <tr>
+            <th>National Drug Code (NDC)</th>
+            <td>{{ item.ndc }}</td>
+        </tr>
+        <!-- <tr>
+            <th>Prescription Type</th>
+            <td>{{ item.prescription_type }}</td>
+        </tr> -->
+        <tr>
+            <th>Medication Class</th>
+            <td>{{ item.medication_class }}</td>
+        </tr>
+        <tr>
+            <th>Lot #</th>
+            <td>{{ item.lot_number }}</td>
+        </tr>
+
+        <!--tr>
+            <th>Expiration Date</th>
+            <td {% if item['expiration_date'] and (item['expiration_date'][6:]|length == 4 and item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] < current_date) or (item['expiration_date'][6:]|length == 2 and ('20' + item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5]) < current_date) %} style="color: red; font-weight: bold;" {% endif %}>
+                {{ item.expiration_date }}
+            </td> 
+        </tr-->
+
+        <tr>
+            <th>Expiration Date</th>
+            <td>
+                {% if item['expiration_date'] %}
+                    {% set expiration_label = "" %}
+                    {% set expiration_style = "" %}
+                    
+                    {% set expiration_date = item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] + '-' + item['expiration_date'][6:] %}
+                    
+                    {% if (item['expiration_date'][6:]|length == 4 and item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] < current_date) or
+                          (item['expiration_date'][6:]|length == 2 and ('20' + item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5]) < current_date) %}
+                        {% set expiration_style = "color: red; font-weight: bold;" %}
+                        {% set expiration_label = " (Expired)" %}
+                    {% elif (item['expiration_date'][6:]|length == 4 and item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5] < one_month_date) or
+                              (item['expiration_date'][6:]|length == 2 and ('20' + item['expiration_date'][6:] + '-' + item['expiration_date'][:2] + '-' + item['expiration_date'][3:5]) < one_month_date) %}
+                        {% set expiration_style = "color: orange; font-weight: bold;" %}
+                        {% set expiration_label = " (Expires soon)" %}
+                    {% endif %}
+        
+                    <span style="{{ expiration_style }}">{{ item['expiration_date'] }}{{ expiration_label }}</span>
+                {% else %}
+                    <span>No expiration date</span>
+                {% endif %}
+            </td>
+        </tr>
+        
+        <tr>
+            <th>Supplier</th>
+            <td>{{ item.supplier }}</td>
+        </tr>
+        <tr>
+            <th>Order #</th>
+            <td>{{ item.order_number }}</td>
+        </tr>
+        <tr>
+            <th>Quantity to Order</th>
+            <td>{{ item.order_quantity }}</td>
+        </tr>
+        <tr>
+            <th>Minimum Supply</th>
+            <td>{{ item.minimum_supply }}</td>
+        </tr>
+
+        <!-- Display Photo if Available -->
+        {% if item.photo_url %}
+        <tr>
+            <th>Item Photo</th>
+            <td><img src="{{ url_for('static', filename=item.photo_url) }}" alt="Item Photo" class="img-fluid" style="max-width: 200px;"></td>
+        </tr>
+        {% else %}
+        <tr>
+            <th>Item Photo</th>
+            <td>No photo available</td>
+        </tr>
+        {% endif %}
+              
+        <tr>
+            <th>Last Updated</th>
+            {% if item.last_edit %}
+                <td>{{ item.last_edit[5:7] + '/' + item.last_edit[8:10] + '/' + item.last_edit[:4] + ' ' + item.last_edit[11:19] }}</td>
+            {% else %}
+                <td> </td>
+            {% endif %}
+        </tr> 
+        
+        <tr>
+            <th>Notes</th>
+            <td>{{ item.description }}</td>
+        </tr>
+    </table>
+
+    <div class="actions" style="margin-bottom: 10px;">
+        {% if item.removed == False or item.removed is none %}
+            <!-- Single "Select Amount" field for use or transfer -->
+            <label for="quantity_to_use_or_transfer">Select Amount:</label>
+            <input type="number" name="quantity_to_use_or_transfer" id="quantity_to_use_or_transfer" min="0" max="{{ item.quantity }}" required>
+
+
+            <!-- Buttons for Use and Transfer -->
+            <button type="button" class="btn btn-warning btn-sm" id="useButton">Use</button>
+            <button type="button" class="btn btn-success btn-sm" id="transferButton" onclick="showTransferFields()">Transfer</button>
+        {% endif %}
+
+
+
+        <!-- Transfer Form (hidden initially) -->
+        <form method="post" action="{{ url_for('transfer_item', item_id=item.id) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}" class="d-inline" id="transferForm" style="display:none;" 
+            onsubmit="return validateTransfer('{{ item.name }}', '{{ item.location }}', document.getElementById('quantity_to_transfer_hidden').value);">
+            <div id="transferFields" style="display: none;">
+                
+                <select name="new_location" id="new_location" required>
+                    <option value="" disabled selected>Select New Site</option>
+                    {% for location in locations %}
+                        {% if location[0] != item.location %}
+                            <option value="{{ location[0] }}">{{ location[0] }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+
+                <!-- Hidden input for quantity -->
+                <input type="hidden" name="quantity_to_transfer" id="quantity_to_transfer_hidden">
+            
+                <button type="submit" class="btn btn-success btn-sm">Submit Transfer</button>
+            </div>
+        </form>
+
+
+
+        <script>
+            function validateTransfer(itemName, currentLocation, amount) {
+                var newLocation = document.getElementById('new_location').value.trim();
+            
+                if (newLocation === currentLocation.trim()) {
+                    alert(`Transfer failed: The item is already at the location "${currentLocation}". Please choose a different location.`);
+                    return false;
+                }
+            
+                if (!confirm(`Are you sure you want to transfer ${amount} of the item: ${itemName} to ${newLocation}?`)) {
+                    window.location.href = "{{ url_for('view_item', item_id=item.id) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}";
+                    return false;
+                }
+            
+                return true; // Proceed with form submission
+            }
+        </script>
+        
+
+
+        <!-- JavaScript -->
+        <script>
+            function showTransferFields() {
+
+                var amount = document.getElementById('quantity_to_use_or_transfer').value;
+                var availableQuantity = Number("{{ item.quantity }}");
+                // Proceed only if a valid amount is selected (non-empty)
+                if ((!amount) || (amount > availableQuantity)) {
+                    return; // Exit function if no valid amount is selected
+                }
+
+                var transferFields = document.getElementById('transferFields');
+                var transferForm = document.getElementById('transferForm');
+
+                // Display the form and fields
+                transferForm.style.display = 'inline';
+                transferFields.style.display = 'block';
+
+                // Hide the transfer button to prevent re-clicking
+                document.getElementById('transferButton').style.display = 'none';
+                document.getElementById('useButton').style.display = 'none';
+
+                //document.getElementById('quantity_to_use_or_transfer').style.display = 'none';
+                // Disable the input and ensure visibility
+                var quantityInput = document.getElementById('quantity_to_use_or_transfer');
+                quantityInput.disabled = true;  // Prevent changes
+                //quantityInput.style.opacity = '1'; // Ensure visibility despite being disabled
+
+                document.querySelector('label[for="quantity_to_use_or_transfer"]').style.display = 'inline';
+                // Change label text to "Amount Selected:"
+                //var quantityLabel = document.querySelector('label[for="quantity_to_use_or_transfer"]');
+                //quantityLabel.textContent = `Amount to Transfer: `;  // Add the selected amount to the label
+            }
+        </script>
+
+
+
+
+
+
+
+        <!-- Edit button styled as btn-info -->
+        {% if(session.get('user') == 'admin') %}
+            <a href="{{ url_for('edit_item', item_id=item.id) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}" class="btn btn-info btn-sm">Edit</a>
+        {% endif %}
+
+        <!-- Delete button styled as btn-danger -->
+        {% if(session.get('user') == 'admin') %}
+            <a href="{{ url_for('delete_item', item_id=item['id']) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}" class="btn btn-danger btn-sm" onclick="return confirmDelete();">Delete</a>
+        {% endif %}
+    </div>
+
+
+    <!-- Hidden input to store the current hash (scroll position) -->
+    <input type="hidden" id="current_hash" value="{{ current_hash }}">
+
+    {% if item.removed == False or item.removed is none %}
+        <!-- Back to Inventory button -->
+        <a href="{{ url_for('main_page', page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''), 
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'), 
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'), 
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" 
+        style="margin-bottom: 20px;" class="btn btn-secondary btn-sm" 
+        id="back-button-{{ item['id'] }}">Back to Inventory</a>
+    {% endif %}
+    {% if item.removed == True %}
+        <!-- Back to Removed Inventory button -->
+        <a href="{{ url_for('removed_inventory', page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''), 
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'), 
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'), 
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" 
+        style="margin-bottom: 20px;" class="btn btn-secondary btn-sm" 
+        id="back-button-{{ item['id'] }}">Back to Inventory</a>
+    {% endif %}
+
+    <script>
+        document.getElementById('back-button-{{ item['id'] }}').addEventListener('click', function(event) {
+            var currentHash = document.getElementById('current_hash').value;  // Get current scroll position from hidden input
+            var backButton = document.getElementById('back-button-{{ item['id'] }}');
+            var currentUrl = backButton.href;
+    
+            // If currentHash exists, append it to the URL as 'scroll'
+            if (currentHash) {
+                // Check if the URL already has query parameters and append 'scroll'
+                if (currentUrl) {
+                    backButton.href = currentUrl + '#scroll=' + currentHash;
+                } else {
+                    backButton.href = currentUrl + '#scroll=' + currentHash;
+                }
+            }
+        });
+    </script>
+
+
+
+
+    <script>
+        function confirmUse(itemName, amount) {
+            return confirm(`Are you sure you want to use ${amount} of the item: ${itemName}?`);
+        }
+
+        function confirmTransfer(itemName, amount) {
+            if (confirm(`Are you sure you want to transfer ${amount} of the item: ${itemName}?`)) {
+                return true; // Proceed with form submission
+            } else {
+                window.location.href = "{{ url_for('view_item', item_id=item.id) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}"; // Redirect to view_item page
+                return false; // Prevent form submission
+            }
+        }
+
+        function confirmDelete() {
+            return confirm('Are you sure you want to delete this item? This action cannot be undone.');
+        }
+
+        // Handle Use button click
+        document.getElementById('useButton').addEventListener('click', function() {
+            var amount = document.getElementById('quantity_to_use_or_transfer').value;
+            var availableQuantity = Number("{{ item.quantity }}"); // Get available quantity from the backend (ensure this is passed into the template)
+
+            if (amount) {
+                // Check if the amount entered is greater than the available quantity
+                if (parseInt(amount) > availableQuantity) {
+                    alert('Amount exceeds available quantity. Please enter a valid amount.');
+                } else {
+                    if (confirmUse('{{ item.name }}', amount)) {
+                        var form = document.createElement('form');
+                        form.method = 'post';
+                        form.action = "{{ url_for('use_item', item_id=item.id) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}";
+                        var input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = 'quantity_used';
+                        input.value = amount;
+                        form.appendChild(input);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                }
+            } else {
+                alert('Please select an amount to use');
+            }
+        });
+
+
+        // Handle Transfer button click
+        document.getElementById('transferButton').addEventListener('click', function() {
+            var amount = document.getElementById('quantity_to_use_or_transfer').value;
+            var availableQuantity = Number("{{ item.quantity }}");
+            if (amount) {
+                if (parseInt(amount) > availableQuantity) {
+                    alert('Amount exceeds available quantity. Please enter a valid amount.');
+                } else {
+                    // Set the hidden input for transfer quantity
+                    document.getElementById('quantity_to_transfer_hidden').value = amount;
+
+                    // Show the transfer form
+                    document.getElementById('transferForm').style.display = 'inline';
+                    document.getElementById('transferButton').style.display = 'none';  // Hide Transfer button after clicked
+                }
+            } else {
+                alert('Please select an amount to transfer');
+            }
+        });
+    </script>
+
+    <script>
+        function editLocation() {
+            var locationField = document.getElementById('location');
+            var currentLocation = locationField.innerHTML;
+            locationField.innerHTML = `<input type="text" id="editLocationInput" value="${currentLocation}" />`;
+            document.getElementById('editLocationInput').focus();
+            document.getElementById('editLocationInput').onblur = function() {
+                saveLocation(locationField, this.value);
+            };
+        }
+
+        function saveLocation(locationField, newLocation) {
+            // Send the updated location to the server
+            var itemId = {{ item.id }};
+            fetch(`/update_location/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ location: newLocation })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    locationField.innerHTML = newLocation;
+                } else {
+                    alert('Failed to update location');
+                }
+            });
+        }
+
+        function deleteItem(itemId) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                fetch(`/delete_item/${itemId}`, {
+                    method: 'DELETE',
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '{{ url_for("main_page") }}'; // Redirect to the main page
+                    } else {
+                        alert('Failed to delete item');
+                    }
+                });
+            }
+        }
+    </script>
+
+{% endblock %}

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory - {{ request.args.get('location') or 'All Locations' }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> <!-- Optional CSS -->
+
+    <!-- Add print-specific CSS -->
+    
+</head>
+<body class="page-audit-report">
+
+    <!-- Back to Inventory Page Button (Will be hidden on print) -->
+    <nav>
+        <a href="{{ url_for('main_page', last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''), categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'), locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'), locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}">← Back to Inventory</a>
+    </nav>
+
+    <br>
+
+    <!-- Print Audit Report Button -->
+    <!-- {% if medications %}
+    <button onclick="window.print()" class="btn btn-info mt-2 print-btn">
+        Print this page
+    </button>
+    {% endif %} -->
+
+    <!-- <button class="btn btn-info mt-2 print-btn">
+        >>> CLICK HERE TO DOWNLOAD FULL CSV FOR AUDIT REPORT <<<
+    </button> -->
+
+    <button onclick="window.location.href='{{ url_for('download_inventory_csv') }}'" class="btn btn-info mt-2 print-btn" style="display:none">
+        <i class="bi bi-download"></i> >>> CLICK HERE TO DOWNLOAD FULL CSV FOR AUDIT REPORT <<<
+    </button>
+
+    <a href="{{ url_for('download_inventory_excel') }}" class="btn btn-outline-success rounded-pill d-flex align-items-center gap-2" style="display:none">
+        <i class="bi bi-file-earmark-excel"></i> Download Excel
+    </a>
+
+    <header style="text-align: center;">
+        <h1>Inventory - {{ request.args.get('location') or 'All Locations' }}</h1>
+    </header>
+
+    <!-- Audit Report Table -->
+    <section class="audit-report-section">
+        {% if medications %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>AKA</th>
+                        <th>Lot Number</th>
+                        <!-- <th>Dosage</th> -->
+                        <!-- <th>Form</th> -->
+                        <th>Location1</th>
+                        <th>Location</th>
+                        <th>Quantity</th>
+                        <th>Dispensed Unit</th>
+                        <th>Expiration Date</th>
+                        <!-- <th>Category</th> -->
+                        <!-- <th>Description</th> -->
+                        <!-- <th>Supplier</th> -->
+                        <!-- <th>Last Edit</th> -->
+                        <!-- <th>NDC</th> -->
+                        <!--th>Unit Quantity</th-->
+                        <!-- <th>Prescription Type</th> -->
+                        <!-- <th>Minimum Supply</th> -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medications %}
+                        <tr>
+                            <td>{{ med['name'] }}</td>
+                            <td>{{ med['aka'] }}</td>
+                            <td>{{ med['lot_number'] }}</td>
+                            <!-- <td>{{ med['dosage'] }}</td> -->
+                            <!-- <td>{{ med['form'] }}</td> -->
+                            <td>{{ med['location1'] }}</td>
+                            <td>{{ med['location'] }}</td>
+                            <td>{{ med['quantity'] }}</td>
+                            <td>{{ med['dispense_used'] }}</td>
+                            <td>{{ med['expiration_date'] }}</td>
+                            <!-- <td>{{ med['category'] }}</td> -->
+                            <!-- <td>{{ med['description'] }}</td> -->
+                            <!-- <td>{{ med['supplier'] }}</td> -->
+                            <!-- <td>{{ med['last_edit'] }}</td> -->
+                            <!-- <td>{{ med['ndc'] }}</td> -->
+                            <!--td>{{ med['unit_quantity'] }}</td-->
+                            <!-- <td>{{ med['prescription_type'] }}</td> -->
+                            <!-- <td>{{ med['minimum_supply'] }}</td> -->
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>No items matched your search.</p>
+        {% endif %}
+    </section>
+
+
+
+
+    <!-- print page on load -->
+    <script>
+        window.addEventListener('DOMContentLoaded', function () {
+          window.print();
+        });
+    </script>
+
+</body>
+</html>

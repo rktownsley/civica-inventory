@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block body_class %}page-view-location{% endblock %}
+{% block content %}
+
+<!-- Include Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+
+
+<div class="modal-backdropsettings show">
+    <div class="settings-container">
+        <!-- Header -->
+        <div class="settings-header">
+            <div class="circle-1"></div>
+            <div class="circle-2"></div>
+            <div style="position: relative; padding: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="padding: 0.75rem; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                        <i data-lucide="map-pin" style="width: 1.75rem; height: 1.75rem;"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; font-size: 1.5rem; font-weight: 700;">{{ location['value'] }}</h2>
+                        <p style="margin: 0; font-size: 0.875rem; color: #bfdbfe; display: flex; align-items: center; gap: 0.25rem;">
+                            <i data-lucide="layers" style="width: 0.875rem; height: 0.875rem;"></i>
+                            Manage locations
+                        </p>
+                    </div>
+                </div>
+                <button onclick="history.back()" style="background: transparent; border: none; color: white; width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.2)'" onmouseout="this.style.background='transparent'">
+                    <i data-lucide="x" style="width: 1.25rem; height: 1.25rem;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="settings-content">
+            <!-- Location 1 Section -->
+            <div class="config-card">
+                <div class="section-title">
+                    <i data-lucide="folder" style="width: 1.25rem; height: 1.25rem; color: #1e40af;"></i>
+                    Location 1
+                </div>
+                
+                {% for location1 in locations1 | sort(attribute='value', reverse=false) %}
+                <div class="config-item" id="item-location1-{{ loop.index }}">
+                    <span id="location1Name-{{ location1['value'] }}">{{ location1['value'] }}</span>
+                    
+                    <form id="editForm-{{ location1['value'] }}" method="POST" action="{{ url_for('edit_location1', location_value=location1['value']) }}" style="display:none; flex: 1; margin: 0; gap: 0.5rem;">
+                        <input type="text" name="value" value="{{ location1['value'] }}" class="input-field" required>
+                        <input type="hidden" name="site" value="{{ location['value'] }}">
+                        <button type="submit" class="btn-icon btn-save" onclick="savePageState()">
+                            <i data-lucide="check" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <button type="button" class="btn-icon btn-cancel" onclick="cancelEdit('editForm-{{ location1['value'] }}', 'location1Name-{{ location1['value'] }}', 'item-location1-{{ loop.index }}')">
+                            <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="action-buttons" id="actions-location1-{{ loop.index }}" style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn-icon btn-edit" onclick="startEdit('editForm-{{ location1['value'] }}', 'location1Name-{{ location1['value'] }}', 'item-location1-{{ loop.index }}')">
+                            <i data-lucide="pencil" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <form method="POST" action="{{ url_for('delete_location1', location_value=location1['value']) }}" style="display:inline; margin: 0;" onsubmit="savePageState()">
+                            <input type="hidden" name="site" value="{{ location['value'] }}">
+                            <button type="submit" class="btn-icon btn-delete" onclick="return confirmDelete()">
+                                <i data-lucide="trash-2" style="width: 0.875rem; height: 0.875rem;"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <form method="POST" class="add-form" onsubmit="savePageState()">
+                    <input type="hidden" name="type" value="location1">
+                    <input type="text" name="value" placeholder="Add new location..." class="input-field" required>
+                    <button type="submit" class="btn-add">
+                        <i data-lucide="plus" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i>
+                        Add
+                    </button>
+                </form>
+            </div>
+
+            <!-- Location 2 Section -->
+            <div class="config-card">
+                <div class="section-title">
+                    <i data-lucide="folder" style="width: 1.25rem; height: 1.25rem; color: #1e40af;"></i>
+                    Location 2
+                </div>
+                
+                {% for location2 in locations2 | sort(attribute='value', reverse=false) %}
+                <div class="config-item" id="item-location2-{{ loop.index }}">
+                    <span id="location2Name-{{ location2['value'] }}">{{ location2['value'] }}</span>
+                    
+                    <form id="editForm2-{{ location2['value'] }}" method="POST" action="{{ url_for('edit_location2', location_value=location2['value']) }}" style="display:none; flex: 1; margin: 0; gap: 0.5rem;" onsubmit="savePageState()">
+                        <input type="text" name="value" value="{{ location2['value'] }}" class="input-field" required>
+                        <input type="hidden" name="site" value="{{ location['value'] }}">
+                        <button type="submit" class="btn-icon btn-save">
+                            <i data-lucide="check" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <button type="button" class="btn-icon btn-cancel" onclick="cancelEdit('editForm2-{{ location2['value'] }}', 'location2Name-{{ location2['value'] }}', 'item-location2-{{ loop.index }}')">
+                            <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="action-buttons" id="actions-location2-{{ loop.index }}" style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn-icon btn-edit" onclick="startEdit('editForm2-{{ location2['value'] }}', 'location2Name-{{ location2['value'] }}', 'item-location2-{{ loop.index }}')">
+                            <i data-lucide="pencil" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <form method="POST" action="{{ url_for('delete_location2', location_value=location2['value']) }}" style="display:inline; margin: 0;" onsubmit="savePageState()">
+                            <input type="hidden" name="site" value="{{ location['value'] }}">
+                            <button type="submit" class="btn-icon btn-delete" onclick="return confirmDelete()">
+                                <i data-lucide="trash-2" style="width: 0.875rem; height: 0.875rem;"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <form method="POST" class="add-form">
+                    <input type="hidden" name="type" value="location2">
+                    <input type="text" name="value" placeholder="Add new location..." class="input-field" required>
+                    <button type="submit" class="btn-add">
+                        <i data-lucide="plus" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i>
+                        Add
+                    </button>
+                </form>
+            </div>
+
+            <!-- Location 3 Section -->
+            <div class="config-card">
+                <div class="section-title">
+                    <i data-lucide="folder" style="width: 1.25rem; height: 1.25rem; color: #1e40af;"></i>
+                    Location 3
+                </div>
+                
+                {% for location3 in locations3 | sort(attribute='value', reverse=false) %}
+                <div class="config-item" id="item-location3-{{ loop.index }}">
+                    <span id="location3Name-{{ location3['value'] }}">{{ location3['value'] }}</span>
+                    
+                    <form id="editForm3-{{ location3['value'] }}" method="POST" action="{{ url_for('edit_location3', location_value=location3['value']) }}" style="display:none; flex: 1; margin: 0; gap: 0.5rem;" onsubmit="savePageState()">
+                        <input type="text" name="value" value="{{ location3['value'] }}" class="input-field" required>
+                        <input type="hidden" name="site" value="{{ location['value'] }}">
+                        <button type="submit" class="btn-icon btn-save">
+                            <i data-lucide="check" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <button type="button" class="btn-icon btn-cancel" onclick="cancelEdit('editForm3-{{ location3['value'] }}', 'location3Name-{{ location3['value'] }}', 'item-location3-{{ loop.index }}')">
+                            <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="action-buttons" id="actions-location3-{{ loop.index }}" style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn-icon btn-edit" onclick="startEdit('editForm3-{{ location3['value'] }}', 'location3Name-{{ location3['value'] }}', 'item-location3-{{ loop.index }}')">
+                            <i data-lucide="pencil" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <form method="POST" action="{{ url_for('delete_location3', location_value=location3['value']) }}" style="display:inline; margin: 0;" onsubmit="savePageState()">
+                            <input type="hidden" name="site" value="{{ location['value'] }}">
+                            <button type="submit" class="btn-icon btn-delete" onclick="return confirmDelete()">
+                                <i data-lucide="trash-2" style="width: 0.875rem; height: 0.875rem;"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <form method="POST" class="add-form">
+                    <input type="hidden" name="type" value="location3">
+                    <input type="text" name="value" placeholder="Add new location..." class="input-field" required>
+                    <button type="submit" class="btn-add">
+                        <i data-lucide="plus" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i>
+                        Add
+                    </button>
+                </form>
+            </div>
+
+            <!-- Location 4 Section -->
+            <div class="config-card">
+                <div class="section-title">
+                    <i data-lucide="folder" style="width: 1.25rem; height: 1.25rem; color: #1e40af;"></i>
+                    Location 4
+                </div>
+                
+                {% for location4 in locations4 | sort(attribute='value', reverse=false) %}
+                <div class="config-item" id="item-location4-{{ loop.index }}">
+                    <span id="location4Name-{{ location4['value'] }}">{{ location4['value'] }}</span>
+                    
+                    <form id="editForm4-{{ location4['value'] }}" method="POST" action="{{ url_for('edit_location4', location_value=location4['value']) }}" style="display:none; flex: 1; margin: 0; gap: 0.5rem;" onsubmit="savePageState()">
+                        <input type="text" name="value" value="{{ location4['value'] }}" class="input-field" required>
+                        <input type="hidden" name="site" value="{{ location['value'] }}">
+                        <button type="submit" class="btn-icon btn-save">
+                            <i data-lucide="check" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <button type="button" class="btn-icon btn-cancel" onclick="cancelEdit('editForm4-{{ location4['value'] }}', 'location4Name-{{ location4['value'] }}', 'item-location4-{{ loop.index }}')">
+                            <i data-lucide="x" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="action-buttons" id="actions-location4-{{ loop.index }}" style="display: flex; gap: 0.25rem;">
+                        <button type="button" class="btn-icon btn-edit" onclick="startEdit('editForm4-{{ location4['value'] }}', 'location4Name-{{ location4['value'] }}', 'item-location4-{{ loop.index }}')">
+                            <i data-lucide="pencil" style="width: 0.875rem; height: 0.875rem;"></i>
+                        </button>
+                        <form method="POST" action="{{ url_for('delete_location4', location_value=location4['value']) }}" style="display:inline; margin: 0;" onsubmit="savePageState()">
+                            <input type="hidden" name="site" value="{{ location['value'] }}">
+                            <button type="submit" class="btn-icon btn-delete" onclick="return confirmDelete()">
+                                <i data-lucide="trash-2" style="width: 0.875rem; height: 0.875rem;"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <form method="POST" class="add-form">
+                    <input type="hidden" name="type" value="location4">
+                    <input type="text" name="value" placeholder="Add new location..." class="input-field" required>
+                    <button type="submit" class="btn-add">
+                        <i data-lucide="plus" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i>
+                        Add
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="settings-footer">
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button onclick="window.location.href='{{ url_for('settings') }}'" style="padding: 0.625rem 1.25rem; background: #1e40af; color: white; border: none; border-radius: 0.5rem; font-weight: 500; cursor: pointer; transition: all 0.2s; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);" onmouseover="this.style.background='#1e3a8a'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#1e40af'; this.style.transform='scale(1)'">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    
+    // Save page scroll position before form submission
+    function savePageState() {
+        sessionStorage.setItem('viewLocationScrollPos', document.querySelector('.settings-content').scrollTop);
+    }
+    
+    // Restore scroll position on page load
+    window.addEventListener('load', function() {
+        const scrollPos = sessionStorage.getItem('viewLocationScrollPos');
+        if (scrollPos) {
+            document.querySelector('.settings-content').scrollTop = parseInt(scrollPos);
+            sessionStorage.removeItem('viewLocationScrollPos');
+        }
+        lucide.createIcons();
+    });
+    
+    function confirmDelete() {
+        if (confirm('Are you sure you want to delete this item? This action cannot be undone.')) {
+            savePageState();
+            return true;
+        }
+        return false;
+    }
+    
+    function startEdit(formId, nameId, itemId) {
+        const form = document.getElementById(formId);
+        const name = document.getElementById(nameId);
+        const item = document.getElementById(itemId);
+        const actions = item.querySelector('.action-buttons');
+        
+        form.style.display = 'flex';
+        name.style.display = 'none';
+        actions.style.display = 'none';
+        item.classList.add('editing');
+        
+        setTimeout(() => lucide.createIcons(), 10);
+    }
+    
+    function cancelEdit(formId, nameId, itemId) {
+        const form = document.getElementById(formId);
+        const name = document.getElementById(nameId);
+        const item = document.getElementById(itemId);
+        const actions = item.querySelector('.action-buttons');
+        
+        form.style.display = 'none';
+        name.style.display = 'inline';
+        actions.style.display = 'flex';
+        item.classList.remove('editing');
+    }
+    
+    // Add savePageState to all forms on submit
+    document.addEventListener('DOMContentLoaded', function() {
+        const forms = document.querySelectorAll('.add-form');
+        forms.forEach(form => {
+            form.addEventListener('submit', savePageState);
+        });
+    });
+</script>
+
+{% endblock %}

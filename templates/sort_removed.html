@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort Removed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> <!-- Optional CSS -->
+
+    <!-- Add print-specific CSS -->
+    
+</head>
+<body class="page-sort-removed">
+    <header>
+        <h1>Removed</h1>
+    </header>
+
+    <!-- Back to Inventory Page Button (Will be hidden on print) -->
+    <nav>
+        <a href="{{ url_for('removed_inventory') }}">← Go Back</a>
+    </nav>
+
+    <!-- Item Report Table -->
+    <section class="item-report-section">
+        {% set removed_items = items | selectattr('removed', 'equalto', 1) | list %} <!-- Filter removed items -->
+    
+        {% if removed_items %}
+            <div class="table-container">
+                <table id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">Name</th>
+                            <th onclick="sortTable(1)">Aka</th>
+                            <th onclick="sortTable(2)">Quantity</th>
+                            <th onclick="sortTable(3)">Dispensed Unit</th>
+                            <th onclick="sortTable(4)">Category</th>
+                            <th onclick="sortTable(5)">Description</th>
+                            <th onclick="sortTable(6)">Instrument Type</th>
+                            <th onclick="sortTable(7)">Expiration Date</th>
+                            <th onclick="sortTable(8)">Supplier</th>
+                            <th onclick="sortTable(9)">Order Number</th>
+                            <th onclick="sortTable(10)">Dosage</th>
+                            <th onclick="sortTable(11)">Form</th>
+                            <th onclick="sortTable(12)">Lot Number</th>
+                            <th onclick="sortTable(13)">NDC</th>
+                            <th onclick="sortTable(14)">Unit</th>
+                            <th onclick="sortTable(15)">Minimum Supply</th>
+                            <th onclick="sortTable(16)">Last Edit</th>
+                            <th onclick="sortTable(17)">Removed</th>
+                            <th onclick="sortTable(18)">Low Supply</th>
+                            <th onclick="sortTable(19)">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in removed_items %}
+                            <tr>
+                                <td>{{ med['name'] }}</td>
+                                <td>{{ med['aka'] }}</td>
+                                <td>{{ med['quantity'] }}</td>
+                                <td>{{ med['dispense_as'] }}</td>
+                                <td>{{ med['category'] }}</td>
+                                <td>{{ med['description'] }}</td>
+                                <td>{{ med['instrument_type'] }}</td>
+                                <td>{{ med['expiration_date'] }}</td>
+                                <td>{{ med['supplier'] }}</td>
+                                <td>{{ med['order_number'] }}</td>
+                                <td>{{ med['dosage'] }}</td>
+                                <td>{{ med['form'] }}</td>
+                                <td>{{ med['lot_number'] }}</td>
+                                <td>{{ med['ndc'] }}</td>
+                                <td>{{ med['dispense_used'] }}</td>
+                                <td>{{ med['minimum_supply'] }}</td>
+                                <td>{{ med['last_edit'] }}</td>
+                                <td>
+                                    {% if med['removed'] == 1 %}
+                                        Yes
+                                    {% else %}
+                                        No
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if med['quantity'] < med['minimum_supply'] %}
+                                        Yes
+                                    {% else %}
+                                        No
+                                    {% endif %}
+                                </td>
+                                <td>{{ med['status'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+    
+            <!-- Print Item Report Button -->
+            <button onclick="window.print()" class="btn btn-info mt-2 print-btn">
+                Print Report
+            </button>
+    
+        {% else %}
+            <p>No items found.</p> <!-- If no items with removed == 1, show this message -->
+        {% endif %}
+    </section>
+
+    <!-- JavaScript for Sorting Table -->
+    <script>
+        function sortTable(n) {
+            var table = document.getElementById("itemsTable");
+            var rows = table.rows;
+            var switching = true;
+            var dir = "asc"; // Default sorting direction
+            var switchcount = 0;
+
+            while (switching) {
+                switching = false;
+                var shouldSwitch = false;
+
+                // Loop through all rows (except the first, which is the header)
+                for (var i = 1; i < (rows.length - 1); i++) {
+                    var x = rows[i].getElementsByTagName("TD")[n];
+                    var y = rows[i + 1].getElementsByTagName("TD")[n];
+
+                    if (dir == "asc") {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir == "desc") {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

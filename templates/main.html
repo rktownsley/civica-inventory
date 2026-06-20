@@ -1,0 +1,1449 @@
+{% extends "base.html" %}
+{% block body_class %}page-main{% endblock %}
+{% block content %}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Server-derived values needed by the external page/item JS files
+    // (static/js/inventory_page.js, inventory_item_actions.js,
+    // inventory_item_init.js). Computed once here instead of being
+    // re-embedded inline throughout the template.
+    {% set lot_numbers = [] %}
+    {% for item in aggregated_items %}
+        {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+            {% if details.lot_number and details.lot_number != 'None' and details.lot_number not in lot_numbers %}
+                {% set _ = lot_numbers.append(details.lot_number) %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    {# Identical query-string suffix used by every item's remove/restock
+       fallback form action -- built once here exactly as it was
+       previously built (and re-built) once per item in the loop. #}
+    {% set qs = namespace(value="?page=" + request.args.get('page', '') + "&last_edit=" + request.args.get('last_edit', '') + "&supplier=" + request.args.get('supplier', '') + "&category=" + request.args.get('category', '') + "&search=" + request.args.get('search', '') + "&location=" + request.args.get('location', '') + "&location1=" + request.args.get('location1', '') + "&location2=" + request.args.get('location2', '') + "&location3=" + request.args.get('location3', '') + "&location4=" + request.args.get('location4', '') + "&sort=" + request.args.get('sort', '')) %}
+    {% for f in request.args.getlist('filters') %}{% set qs.value = qs.value + "&filters=" + f %}{% endfor %}
+    {% for c in request.args.getlist('categories') %}{% set qs.value = qs.value + "&categories=" + c %}{% endfor %}
+    {% for s in request.args.getlist('suppliers') %}{% set qs.value = qs.value + "&suppliers=" + s %}{% endfor %}
+    {% for l1 in request.args.getlist('locations1') %}{% set qs.value = qs.value + "&locations1=" + l1 %}{% endfor %}
+    {% for l2 in request.args.getlist('locations2') %}{% set qs.value = qs.value + "&locations2=" + l2 %}{% endfor %}
+    {% for l3 in request.args.getlist('locations3') %}{% set qs.value = qs.value + "&locations3=" + l3 %}{% endfor %}
+    {% for l4 in request.args.getlist('locations4') %}{% set qs.value = qs.value + "&locations4=" + l4 %}{% endfor %}
+    {% set qs.value = qs.value + "&last_edits=" + request.args.get('last_edits', '') %}
+
+    window.APP_CONFIG = {
+        currentDate: {{ current_date | tojson | safe }},
+        oneMonthDate: {{ one_month_date | tojson | safe }},
+        allLotNumbers: {{ lot_numbers | tojson | safe }},
+        addItemUrl: {{ url_for('add_item') | tojson | safe }},
+        mainPageUrl: {{ url_for('main_page') | tojson | safe }},
+        itemsCount: {{ items|length }},
+        locationExists: {{ (request.args.get('location', '') != "") | tojson | safe }},
+        selectedCategory: {{ (request.args.get('category') or "") | tojson | safe }},
+        selectedSupplier: {{ (request.args.get('supplier') or "") | tojson | safe }},
+        selectedLastEdit: {{ (request.args.get('last_edit') or "") | tojson | safe }},
+        selectedLocation1: {{ (request.args.get('location1') or "") | tojson | safe }},
+        selectedLocation2: {{ (request.args.get('location2') or "") | tojson | safe }},
+        selectedLocation3: {{ (request.args.get('location3') or "") | tojson | safe }},
+        selectedLocation4: {{ (request.args.get('location4') or "") | tojson | safe }},
+        markRemovedBaseUrl: {{ (url_for('mark_removed', item_id=0) + qs.value) | tojson | safe }},
+        markRestockBaseUrl: {{ (url_for('mark_restock', item_id=0) + qs.value) | tojson | safe }}
+    };
+</script>
+<script src="{{ url_for('static', filename='js/inventory_page.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/inventory_item_actions.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/inventory_item_init.js') }}" defer></script>
+
+
+<h1>Inventory</h1>
+
+
+
+
+
+<form method="GET" action="{{ url_for('main_page') }}" class="mb-3">
+    <input type="hidden" name="sort" value="{{ request.args.get('sort', '') }}">
+
+
+    <div class="mt-0">
+    
+    
+    <div>
+        <div class="row g-2 align-items-center">
+
+
+        <div class="col-12 col-lg-auto order-1 order-lg-1">
+            
+            <select name="location" class="form-select" id="location-select"
+                data-intro="Let's get started. Select your clinic name from the dropdown menu." data-step="1">
+
+                {% if session.get('user') == 'klohc' and session.get('clinic') == 'inventory' %}
+                    
+                    <option value="Knights Landing" selected>Knights Landing</option>
+
+                {% elif session.get('user') == 'tepati' and session.get('clinic') == 'inventory' %}
+                    
+                    <option value="Tepati" selected>Tepati</option>
+
+                {% elif session['user'] == 'tepati' %}
+                    <option value="">All Sites</option>
+                    
+                    <option value="Grove" {% if request.args.get('location') == 'Grove' %} selected {% endif %}>Grove</option>
+                    <option value="Tepati" {% if request.args.get('location') == 'Tepati' %} selected {% endif %}>Tepati</option>
+
+                {% elif session['user'] == 'klohc' %}
+                    <option value="">All Sites</option>
+                    
+                    <option value="Grove" {% if request.args.get('location') == 'Grove' %} selected {% endif %}>Grove</option>
+                    <option value="Knights Landing" {% if request.args.get('location') == 'Knights Landing' %} selected {% endif %}>Knights Landing</option>
+
+                {% else %}
+                    <option value="">All Sites</option>
+                    {% for location in locations | sort(attribute='value') %}
+                        <option value="{{ location['value'] }}"
+                            {% if request.args.get('location') == location['value'] %} selected {% endif %}>
+                            {{ location['value'] }}
+                        </option>
+                    {% endfor %}
+                {% endif %}
+
+            </select>
+        </div>
+
+        <div class="col-12 col-lg-5 order-2 order-lg-2">
+            <div class="input-group">
+                <div class="position-relative flex-grow-1">
+                    <input type="text" name="search" id="search" placeholder="Search..." class="form-control" value="{{ request.args.get('search', '') }}">
+                    <div id="autocomplete-suggestions" class="autocomplete-suggestions"></div>
+                </div>
+                <button type="submit" class="btn btn-outline-primary d-flex align-items-center gap-1" data-intro="Press the search icon to appear results." data-step="2">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+        
+
+        <div class="col-6 col-lg-auto" style="display: none;">
+            <a href="{{ url_for('restock_inventory') }}" class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-1 w-100 position-relative">
+                <i class="bi bi-cart-check"></i> Refills
+                {% if restock_count > 0 %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ restock_count }}
+                    </span>
+                {% endif %}
+            </a>
+        </div>
+
+
+        <div class="col-auto col-lg-auto d-flex align-items-center gap-2 order-5 order-lg-3" style="display: block;">
+            <button 
+            type="button" 
+            id="filterButton" 
+            class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 w-100 position-relative"
+            data-bs-toggle="modal" 
+            data-bs-target="#categoryFilterModal">
+            <i class="bi bi-funnel"></i> Filter
+            </button>
+        </div>
+
+        <div class="col-auto col-lg-auto order-3 order-lg-5">
+            {% if(session.get('user') == 'admin' and not session.get('supervisor')) %}
+                <a href="{{ url_for('main_page') }}"
+                class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 w-100" style="box-shadow: none !important; outline: none !important;">
+                   Clear all
+                </a>
+            {% else %}
+                <a href="{{ url_for('main_page', location=request.args.get('location', '')) }}"
+                class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 w-100" style="box-shadow: none !important; outline: none !important;">
+                   Clear all
+                </a>
+            {% endif %}
+        </div>
+
+
+        <div class="col-auto col-lg-auto ms-auto order-4 order-lg-5">
+            {% set current_sort = request.args.get('sort', 'sort1') %}
+
+            <select id="sortSelect" class="form-select">
+                
+
+                <option value="{{ url_for('main_page',
+                    last_edit=request.args.get('last_edit',''),
+                    supplier=request.args.get('supplier',''),
+                    category=request.args.get('category',''),
+                    search=request.args.get('search',''),
+                    location=request.args.get('location',''),
+                    location1=request.args.get('location1',''),
+                    location2=request.args.get('location2',''),
+                    location3=request.args.get('location3',''),
+                    location4=request.args.get('location4',''),
+                    filter=request.args.get('filter',''),
+                    sort='sort1',
+                    filters=request.args.getlist('filters'),
+                    last_edits=request.args.get('last_edits',''),
+                    categories=request.args.getlist('categories'),
+                    suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'),
+                    locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'),
+                    locations4=request.args.getlist('locations4')
+                ) }}"
+                {% if current_sort == 'sort1' %} selected {% endif %}>
+                    Name: A → Z
+                </option>
+
+                <option value="{{ url_for('main_page',
+                    last_edit=request.args.get('last_edit',''),
+                    supplier=request.args.get('supplier',''),
+                    category=request.args.get('category',''),
+                    search=request.args.get('search',''),
+                    location=request.args.get('location',''),
+                    location1=request.args.get('location1',''),
+                    location2=request.args.get('location2',''),
+                    location3=request.args.get('location3',''),
+                    location4=request.args.get('location4',''),
+                    filter=request.args.get('filter',''),
+                    sort='sort2',
+                    filters=request.args.getlist('filters'),
+                    last_edits=request.args.get('last_edits',''),
+                    categories=request.args.getlist('categories'),
+                    suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'),
+                    locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'),
+                    locations4=request.args.getlist('locations4')
+                ) }}"
+                {% if current_sort == 'sort2' %} selected {% endif %}>
+                    Name: Z → A
+                </option>
+
+                
+                <option value="{{ url_for('main_page',
+                    last_edit=request.args.get('last_edit',''),
+                    supplier=request.args.get('supplier',''),
+                    category=request.args.get('category',''),
+                    search=request.args.get('search',''),
+                    location=request.args.get('location',''),
+                    location1=request.args.get('location1',''),
+                    location2=request.args.get('location2',''),
+                    location3=request.args.get('location3',''),
+                    location4=request.args.get('location4',''),
+                    filter=request.args.get('filter',''),
+                    sort='sort5',
+                    filters=request.args.getlist('filters'),
+                    last_edits=request.args.get('last_edits',''),
+                    categories=request.args.getlist('categories'),
+                    suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'),
+                    locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'),
+                    locations4=request.args.getlist('locations4')
+                ) }}"
+                {% if current_sort == 'sort5' %} selected {% endif %}>
+                    Least Recent
+                </option>
+
+                <option value="{{ url_for('main_page',
+                    last_edit=request.args.get('last_edit',''),
+                    supplier=request.args.get('supplier',''),
+                    category=request.args.get('category',''),
+                    search=request.args.get('search',''),
+                    location=request.args.get('location',''),
+                    location1=request.args.get('location1',''),
+                    location2=request.args.get('location2',''),
+                    location3=request.args.get('location3',''),
+                    location4=request.args.get('location4',''),
+                    filter=request.args.get('filter',''),
+                    sort='sort6',
+                    filters=request.args.getlist('filters'),
+                    last_edits=request.args.get('last_edits',''),
+                    categories=request.args.getlist('categories'),
+                    suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'),
+                    locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'),
+                    locations4=request.args.getlist('locations4')
+                ) }}"
+                {% if current_sort == 'sort6' %} selected {% endif %}>
+                    Most Recent
+                </option>
+
+            </select>
+        </div>
+
+
+        
+
+
+        <div class="col-6 col-lg-auto" style="display:none">
+            <div class="btn-group w-100" role="group" aria-label="Filter and Sort">
+
+
+            {% set current_sort = request.args.get('sort', 'sort1') %}
+            <div class="dropdown" style="display:none">
+            
+                <button class="filter-btn-industrial btn fw-semibold d-flex align-items-center justify-content-center gap-1 dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-arrow-down-up"></i>
+                {% if current_sort == 'sort1' %}
+                    A → Z
+                {% elif current_sort == 'sort2' %}
+                    Z → A
+                {% elif current_sort == 'sort5' %}
+                    Oldest
+                {% elif current_sort == 'sort6' %}
+                    Recent
+                {% else %}
+                    Sort
+                {% endif %}
+                
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="sortDropdown">
+                <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ url_for('main_page',
+                    page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''),
+                    supplier=request.args.get('supplier', ''), category=request.args.get('category', ''),
+                    search=request.args.get('search', ''), location=request.args.get('location', ''),
+                    location1=request.args.get('location1', ''), location2=request.args.get('location2', ''),
+                    location3=request.args.get('location3', ''), location4=request.args.get('location4', ''),
+                    filter=request.args.get('filter', ''), sort='sort1'
+                    , filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+                    categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')
+                    ) }}">
+                    Name: A → Z
+                    {% if current_sort == 'sort1' %}
+                    <span class="text-success">&check;</span>
+                    {% endif %}
+                </a>
+                </li>
+                <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ url_for('main_page',
+                    page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''),
+                    supplier=request.args.get('supplier', ''), category=request.args.get('category', ''),
+                    search=request.args.get('search', ''), location=request.args.get('location', ''),
+                    location1=request.args.get('location1', ''), location2=request.args.get('location2', ''),
+                    location3=request.args.get('location3', ''), location4=request.args.get('location4', ''),
+                    filter=request.args.get('filter', ''), sort='sort2'
+                    , filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+                    categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')
+                    ) }}">
+                    Name: Z → A
+                    {% if current_sort == 'sort2' %}
+                    <span class="text-success">&check;</span>
+                    {% endif %}
+                </a>
+                </li>
+                <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ url_for('main_page',
+                    page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''),
+                    supplier=request.args.get('supplier', ''), category=request.args.get('category', ''),
+                    search=request.args.get('search', ''), location=request.args.get('location', ''),
+                    location1=request.args.get('location1', ''), location2=request.args.get('location2', ''),
+                    location3=request.args.get('location3', ''), location4=request.args.get('location4', ''),
+                    filter=request.args.get('filter', ''), sort='sort5'
+                    , filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+                    categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}">
+                    Updated: Oldest First
+                    {% if current_sort == 'sort5' %}
+                    <span class="text-success">&check;</span>
+                    {% endif %}
+                </a>
+                </li>
+                <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-center" href="{{ url_for('main_page',
+                    page=request.args.get('page', ''), last_edit=request.args.get('last_edit', ''),
+                    supplier=request.args.get('supplier', ''), category=request.args.get('category', ''),
+                    search=request.args.get('search', ''), location=request.args.get('location', ''),
+                    location1=request.args.get('location1', ''), location2=request.args.get('location2', ''),
+                    location3=request.args.get('location3', ''), location4=request.args.get('location4', ''),
+                    filter=request.args.get('filter', ''), sort='sort6'
+                    , filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+                    categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+                    locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+                    locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}">
+                    Updated: Recent First
+                    {% if current_sort == 'sort6' %}
+                    <span class="text-success">&check;</span>
+                    {% endif %}
+                </a>
+                </li>
+            </ul>
+            </div>
+        
+
+            </div>
+        </div>
+
+        
+
+
+        </div>
+
+
+    </div>
+
+    </div>
+
+
+    <div class="modal fade" id="categoryFilterModal" tabindex="-1"
+     aria-labelledby="categoryFilterModalLabel" aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"
+             style="margin: 0; padding-top: 0; padding-bottom: 0;
+                    max-height: 80vh; overflow-y: auto; width: auto;">
+
+            <form method="GET" id="filterForm" action="{{ url_for('main_page') }}">
+
+
+                <div class="modal-header sticky-top bg-white border-bottom">
+                    <h5 class="modal-title fw-semibold" id="categoryFilterModalLabel">
+                        Filters
+                    </h5>
+
+                    
+                </div>
+
+                <div class="modal-body">
+
+                    
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#filterCheckboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="filterCheckboxes">
+                    Indicators
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="filterCheckboxes">
+                        <div class="form-group mt-2">
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="E"
+                                    id="filter-e" data-label="Low Supply" {% if 'E' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-e">Low Supply</label>
+                            </div>
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="F"
+                                    id="filter-f" data-label="Expired" {% if 'F' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-f">Expired</label>
+                            </div>
+
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="I"
+                                    id="filter-i" data-label="expires in 1 week" {% if 'I' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-i">expires in 1 week</label>
+                            </div>
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="J"
+                                    id="filter-j" data-label="expires in 1 month" {% if 'J' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-j">expires in 1 month</label>
+                            </div>
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="G"
+                                    id="filter-g" data-label="Expires Soon" {% if 'G' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-g">Expires Soon (60 days)</label>
+                            </div>
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="K"
+                                    id="filter-k" data-label="expires in 3 months" {% if 'K' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-k">expires in 3 months</label>
+                            </div>
+                            <div class="form-check text-start">
+                                <input class="form-check-input category-checkbox" type="checkbox" name="filters" value="H"
+                                    id="filter-h" data-label="Does not expire" {% if 'H' in request.args.getlist('filters') %}checked{% endif %}>
+                                <label class="form-check-label" for="filter-h">Does not expire</label>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#lastEditCheckboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="lastEditCheckboxes">
+                    Updated (on or after)
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="lastEditCheckboxes">
+                        <div class="form-group mt-2">
+                            <div id="last_edit-dropdown-container" class="mt-2">
+                                <input type="date" name="last_edits" class="form-control category-checkbox mb-2" id="last_edit-select" data-label="{{ request.args.get('last_edits') }}"
+                                value="{{ request.args.get('last_edits') }}">
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#categoryCheckboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="categoryCheckboxes">
+                    Categories
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="categoryCheckboxes">
+                        <div class="form-group mt-2">
+                        {% for category in categories | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="categories" value="{{ category.value }}"
+                                    id="cat-{{ loop.index }}" data-label="{{ category.value }}" {% if category.value in selected_categories %}checked{% endif %}>
+                            <label class="form-check-label" for="cat-{{ loop.index }}">{{ category.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#supplierCheckboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="supplierCheckboxes">
+                    Suppliers
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="supplierCheckboxes">
+                        <div class="form-group mt-2">
+                        {% for supplier in suppliers | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="suppliers" value="{{ supplier.value }}"
+                                    id="sup-{{ loop.index }}" data-label="{{ supplier.value }}" {% if supplier.value in selected_suppliers %}checked{% endif %}>
+                            <label class="form-check-label" for="sup-{{ loop.index }}">{{ supplier.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#medication_classCheckboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="medication_classCheckboxes">
+                    Medication Class
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="medication_classCheckboxes">
+                        <div class="form-group mt-2">
+                        {% for medication_class in medication_classes | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="medication_classes" value="{{ medication_class.value }}"
+                                    id="medc-{{ loop.index }}" data-label="{{ medication_class.value }}" {% if medication_class.value in selected_medication_classes %}checked{% endif %}>
+                            <label class="form-check-label" for="medc-{{ loop.index }}">{{ medication_class.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+
+                    {% if request.args.get('location') %}
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#location1Checkboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="location1Checkboxes">
+                    Location 1
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="location1Checkboxes">
+                        <div class="form-group mt-2">
+                        {% for location1 in locations1 | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="locations1" value="{{ location1.value }}"
+                                    id="loc1-{{ loop.index }}" data-label="{{ location1.value }}" {% if location1.value in selected_locations1 %}checked{% endif %}>
+                            <label class="form-check-label" for="loc1-{{ loop.index }}">{{ location1.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+                    
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#location2Checkboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="location2Checkboxes">
+                    Location 2
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="location2Checkboxes">
+                        <div class="form-group mt-2">
+                        {% for location2 in locations2 | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="locations2" value="{{ location2.value }}"
+                                    id="loc2-{{ loop.index }}" data-label="{{ location2.value }}" {% if location2.value in selected_locations2 %}checked{% endif %}>
+                            <label class="form-check-label" for="loc2-{{ loop.index }}">{{ location2.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    
+
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#location3Checkboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="location3Checkboxes">
+                    Location 3
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="location3Checkboxes">
+                        <div class="form-group mt-2">
+                        {% for location3 in locations3 | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="locations3" value="{{ location3.value }}"
+                                    id="loc3-{{ loop.index }}" data-label="{{ location3.value }}" {% if location3.value in selected_locations3 %}checked{% endif %}>
+                            <label class="form-check-label" for="loc3-{{ loop.index }}">{{ location3.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+
+                    
+                    <a class="d-block fw-bold text-black text-decoration-none text-start" 
+                    data-bs-toggle="collapse" 
+                    href="#location4Checkboxes" 
+                    role="button" 
+                    aria-expanded="false" 
+                    aria-controls="location4Checkboxes">
+                    Location 4
+                    
+                    </a>
+
+
+                    <div class="collapse show" id="location4Checkboxes">
+                        <div class="form-group mt-2">
+                        {% for location4 in locations4 | sort(attribute='value') %}
+                            <div class="form-check text-start">
+                            <input class="form-check-input category-checkbox" type="checkbox" name="locations4" value="{{ location4.value }}"
+                                    id="loc4-{{ loop.index }}" data-label="{{ location4.value }}" {% if location4.value in selected_locations4 %}checked{% endif %}>
+                            <label class="form-check-label" for="loc4-{{ loop.index }}">{{ location4.value }}</label>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+
+                <div class="modal-footer d-flex justify-content-start flex-nowrap align-items-center gap-2"
+                    style="position: sticky; bottom: 0; background-color: #fff; z-index: 1055;">
+
+
+                    <a href="{{ url_for('main_page',
+                            location=request.args.get('location', ''),
+                            search=request.args.get('search', ''),
+                            sort=request.args.get('sort', '')) }}"
+                    class="btn" style="white-space: nowrap;">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </a>
+
+                    
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        Apply filters
+                    </button>
+
+                </div>
+
+                
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="filter-bubbles" class="d-flex flex-wrap gap-2 mt-2"></div>
+
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+
+
+
+</form>
+
+
+{% if not items %}
+    <div class="alert alert-warning mt-3">
+        No items matched your search.
+    </div>
+{% else %}
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                
+                <th>Name</th>
+                <th>AKA</th>
+                
+                 <th>Photo</th>
+                <th>Quantity</th>
+                
+                <th>Lot Selection</th>
+                
+                
+            </tr>
+        </thead>
+        <tbody>
+
+            {% for item in aggregated_items %}
+            
+            
+            <tr onclick="handleRowClick('{{ item['id'] }}')" style="cursor: pointer;" data-intro="Click on a row to view the action menu for this item." data-step="3">
+
+            
+                <td id="name-{{ item['id'] }}"
+                    {% set ns = namespace(earliest_date=None) %}
+                    {% for loc in item['locations'].values() %}
+                        {% if loc.location != 'REMOVED' %}
+                            {% if loc.status != 'Removed' %}
+                                {% if loc.removed != 1 %}
+                                    {% if loc['expiration_date'] %}
+                                        {% if loc['expiration_date'][6:]|length == 4 %}
+                                            {% set iso = loc['expiration_date'][6:] + '-' + loc['expiration_date'][:2] + '-' + loc['expiration_date'][3:5] %}
+                                        {% else %}
+                                            {% set iso = '20' + loc['expiration_date'][6:] + '-' + loc['expiration_date'][:2] + '-' + loc['expiration_date'][3:5] %}
+                                        {% endif %}
+                                        {% if not ns.earliest_date or iso < ns.earliest_date %}
+                                            {% set ns.earliest_date = iso %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+
+                    {% set style = "" %}
+                    {% if item['removed'] %}
+                        {% set style = style + "text-decoration: line-through;" %}
+                    {% endif %}
+
+                    {% if ns.earliest_date %}
+                        {% if ns.earliest_date < current_date %}
+                            {% set style = style + "color: red; font-weight: bold;" %}
+                        {% elif ns.earliest_date < one_month_date %}
+                            {% set style = style + "color: #e67e00; font-weight: bold;" %}
+                        {% endif %}
+                    {% endif %}
+
+
+                    id="name-{{ item['id'] }}" style="{{ style }}">
+
+                    {{ item['name'] }}
+                </td>
+
+
+                <td>
+                    {{ item['aka'] }}
+                </td>
+
+                
+                <td>
+                    {% if item.photo_url %}
+                    <div>
+                        
+                        <img src="{{ url_for('static', filename=item.photo_url) }}" alt="Item Photo" class="rounded-lg border border-slate-200" style="max-width: 200px;">
+                    </div>
+                    {% else %}
+                    <div class="flex border-b border-slate-200 pb-2">
+                        
+                        <div class="w-2/3 text-slate-400 text-sm sm:text-base italic">No photo available</div>
+                    </div>
+                    {% endif %}
+                </td>
+
+
+                <td>
+                    <div class="w-100">
+                        {% for loc in item['display_locations'] %}
+                            {% if loc.location != 'REMOVED' %}
+
+                                {% if loc.show_low %}
+                                    {% set btn_color = "btn-danger" %}
+                                {% else %}
+                                    {% set btn_color = "btn-primary" %}
+                                {% endif %}
+
+
+                                <div class="mb-1">
+                                    <button type="submit"
+                                        class="{{ btn_color }} compact-loc-btn w-100 text-start" {% if loc.is_disabled %}disabled{% endif %}
+                                        onclick="event.stopPropagation(); 
+                                        if (!this.disabled && !isOverlayVisible()) {
+                                        openLocationDetails(event, '{{ item['id'] }}', '{{ loc.location }}', '{{ item['name'] }}');
+                                        }">
+
+                                        <span class="fw-semibold">{{ loc.display_label }}</span>
+
+                                        <span class="d-flex align-items-center">
+                                            {% if loc.show_low %}
+                                                    
+                                                {% endif %}
+                                            <span class="compact-loc-qty {% if loc.show_low %}low{% endif %}">
+                                                
+                                                {{ loc.total_quantity }}
+                                            </span>
+                                        
+                                            
+                                        </span>
+
+                                    </button>
+
+                                </div>
+
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </td>
+
+                
+                
+
+                
+
+                
+                <div id="loc-popup-overlay" class="loc-popup-overlay"></div>
+
+
+
+                 
+
+
+                <td>
+                    <div class="lot-options" id="lotOptions-{{ item['id'] }}">
+                        {% set ns = namespace(count=0) %}
+                        {% set locs = namespace(items=[]) %}
+
+                        {% for location_id, details in item['locations'].items() %}
+                            {% if details['location'] != 'REMOVED' %}
+                                {% set safe_date = details.expiration_date_iso or "" %}
+                                {% set _ = locs.items.append((location_id, details, safe_date)) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% for location_id, details, safe_date in locs.items | sort(attribute='2', reverse=false) %}
+                            {% if location_id >= 0 %}
+                                {% set show_location = true %}
+                                {% if session['user'] == 'tepati' and details['location'] not in ['Tepati', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% elif session['user'] == 'klohc' and details['location'] not in ['Knights Landing', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% endif %}
+
+                                {% if show_location %}
+                                    {% set ns.count = ns.count + 1 %}
+                                    {% set short_location = 'KL' if details['location'] == 'Knights Landing' else details['location'] %}
+
+                                    {% if ns.count == 1 %}
+                                        
+                                    {% endif %}
+
+
+                                    <label class="lot-pill">
+                                        <input type="radio"
+                                            name="lot-{{ item['id'] }}"
+                                            value="{{ location_id }}"
+                                            onclick="handleLocationChange('{{ item['id'] }}', '{{ location_id }}')">
+
+                                        <span class="lot-content">
+                                            <span class="lot-name">
+                                                {% if details['lot_number'] %}
+                                                    Lot {{ details['lot_number'] }} – {{ short_location }}
+                                                {% else %}
+                                                    {{ details['location'] }}
+                                                {% endif %}
+                                            </span>
+                                            {% if details['expiration_date'] %}
+                                                <span class="lot-exp">Exp: {{ details['expiration_date'] }}</span>
+                                            {% else %}
+                                                <span class="lot-exp">Does not expire</span>
+                                            {% endif %}
+                                            {% if details.get('show_low', False) %}
+                                                <span class="lot-low-dot"></span>
+                                            {% endif %}
+                                        </span>
+                                    </label>
+
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if ns.count == 0 %}
+                            <div class="out-of-stock">(No lots available)</div>
+                        {% endif %}
+                    </div>
+                </td>
+
+
+                
+
+                
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+<div class="pagination-container mt-3 d-flex justify-content-center align-items-center">
+    
+    {% if page > 1 %}
+        <a href="{{ url_for('main_page', page=1, last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" class="pagination-button pagination-first">
+            First
+        </a>
+    {% endif %}
+
+    
+    {% if page > 1 %}
+        <a href="{{ url_for('main_page', page=page-1, last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" class="pagination-button pagination-prev">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+    {% endif %}
+
+    
+    {% for p in range(page-2, page+3) if p > 0 and p <= total_pages - 1 %}
+        <a href="{{ url_for('main_page', page=p, last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" class="pagination-button {% if p == page %}active{% endif %}">
+            {{ p }}
+        </a>
+    {% endfor %}
+
+    
+    {% if page < (total_pages - 1) %}
+        <a href="{{ url_for('main_page', page=page+1, last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" class="pagination-button pagination-next">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+    {% endif %}
+
+    
+    {% if page < (total_pages - 1) %}
+        <a href="{{ url_for('main_page', page=total_pages - 1, last_edit=request.args.get('last_edit', ''), supplier=request.args.get('supplier', ''), category=request.args.get('category', ''), search=request.args.get('search', ''), location=request.args.get('location', ''), location1=request.args.get('location1', ''), location2=request.args.get('location2', ''), location3=request.args.get('location3', ''), location4=request.args.get('location4', ''), filter=request.args.get('filter', ''), sort=request.args.get('sort', ''), filters=request.args.getlist('filters'), last_edits=request.args.get('last_edits', ''),
+        categories=request.args.getlist('categories'), suppliers=request.args.getlist('suppliers'),
+        locations1=request.args.getlist('locations1'), locations2=request.args.getlist('locations2'),
+        locations3=request.args.getlist('locations3'), locations4=request.args.getlist('locations4')) }}" class="pagination-button pagination-last">
+            Last
+        </a>
+    {% endif %}
+</div>
+
+
+
+<br>
+
+{% endif %}
+
+
+
+
+
+
+
+
+{% for item in aggregated_items %}
+
+<div id="overlay-{{ item['id'] }}" class="overlay" style="display:none;">
+    <div class="modal-content">
+        <button type="button" class="btn-close" onclick="toggleOverlay('{{ item['id'] }}')">&times;</button>
+        <h5>{{ item.name }}</h5>
+        <form id="remove-form-{{ item['id'] }}" action="{{ url_for('mark_removed', item_id=0) }}?page={{ request.args.get('page', '') }}&last_edit={{ request.args.get('last_edit', '') }}&supplier={{ request.args.get('supplier', '') }}&category={{ request.args.get('category', '') }}&search={{ request.args.get('search', '') }}&location={{ request.args.get('location', '') }}&location1={{ request.args.get('location1', '') }}&location2={{ request.args.get('location2', '') }}&location3={{ request.args.get('location3', '') }}&location4={{ request.args.get('location4', '') }}&sort={{ request.args.get('sort', '') }}{% for f in request.args.getlist('filters') %}&filters={{ f }}{% endfor %}{% for c in request.args.getlist('categories') %}&categories={{ c }}{% endfor %}{% for s in request.args.getlist('suppliers') %}&suppliers={{ s }}{% endfor %}{% for l1 in request.args.getlist('locations1') %}&locations1={{ l1 }}{% endfor %}{% for l2 in request.args.getlist('locations2') %}&locations2={{ l2 }}{% endfor %}{% for l3 in request.args.getlist('locations3') %}&locations3={{ l3 }}{% endfor %}{% for l4 in request.args.getlist('locations4') %}&locations4={{ l4 }}{% endfor %}&last_edits={{ request.args.get('last_edits', '') }}"
+        method="POST">
+            
+            <select id="RemovelocationSelect-{{ item['id'] }}" name="location_id" class="form-select" onchange="updateRemoveAction('{{ item['id'] }}')">
+                
+                {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+                    {% if location_id >= 0 %}
+                        <option value="{{ location_id }}">
+                            {{ details['lot_number'] }}
+                        </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <input type="hidden" name="current_hash_{{ item['id'] }}" id="current_hash_{{ item['id'] }}">
+            <button type="submit" class="btn btn-secondary" style="margin-top: 10px;"><i class="bi bi-dash-circle"></i> Remove</button>
+
+        </form>
+    </div>
+</div>
+
+
+<div id="use-overlay-{{ item['id'] }}" class="use-overlay" style="display:none; width:100%;">
+    <div class="d-flex flex-wrap justify-content-center align-items-start p-3" style="gap: 1rem;">
+        
+        <div class="popup-container1 p-3 border rounded" style="max-height: 80vh; overflow-y: auto; flex: 1 1 400px; min-width: 300px;">
+            <button type="button" class="use-btn-close1" onclick="toggleUseOverlay('{{ item['id'] }}')">&times;</button>
+            <h2 class="h21" style="display: block; text-align: center; margin-bottom: 15px;">{{ item.name }}</h2>
+            <form id="use-form-{{ item['id'] }}" action="{{ url_for('use_item', item_id=item['id']) }}" method="POST">
+                
+                
+                <div class="field1">
+                    
+                    
+                    <select id="locationSelect-{{ item['id'] }}" style="display:none;" name="location_id" class="form-select flex-grow-1" onchange="updateLocationActions('{{ item['id'] }}')">
+                        
+                        {% set earliest_date = None %}
+                        {% set earliest_id = None %}
+
+                        {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+
+                            {% if details['expiration_date'] %}
+                                {% if details['expiration_date'][6:]|length == 4 %}
+                                    {% set iso = details['expiration_date'][6:] + '-' + details['expiration_date'][:2] + '-' + details['expiration_date'][3:5] %}
+                                {% else %}
+                                    {% set iso = '20' + details['expiration_date'][6:] + '-' + details['expiration_date'][:2] + '-' + details['expiration_date'][3:5] %}
+                                {% endif %}
+                                {% if not earliest_date or iso < earliest_date %}
+                                    {% set earliest_date = iso %}
+                                    {% set earliest_id = location_id %}
+                                {% endif %}
+                            {% endif %}
+
+                            {% if location_id >= 0 %}
+                                {% set show_location = true %}
+
+                                {% if session['user'] == 'tepati' and details['location'] not in ['Tepati', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% elif session['user'] == 'klohc' and details['location'] not in ['Knights Landing', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% endif %}
+
+                                {% if show_location %}
+                                    {% set short_location = 'KL' if details['location'] == 'Knights Landing' else details['location'] %}
+                                    <option value="{{ location_id }}" {% if location_id == earliest_id %}selected{% endif %} data-location="{{ details['location'] }}" data-quantity="{{ details['quantity'] }}" data-supplier="{{ details['supplier'] }}"
+                                    data-name="{{ item['name'] }}"
+                                    data-medication_class="{{ item['medication_class'] }}"
+                                    data-aka="{{ item['aka'] }}"
+                                    data-status="{{ item['status'] }}"
+                                    data-quantity="{{ details['quantity'] }}"
+                                    data-location="{{ details['location'] }}"
+                                    data-location1="{{ details['location1'] }}"
+                                    data-location2="{{ details['location2'] }}"
+                                    data-location3="{{ details['location3'] }}"
+                                    data-location4="{{ details['location4'] }}"
+                                    data-category="{{ item['category'] }}"
+                                    data-description="{{ item['description'] }}"
+                                    data-instrument_type="{{ item['instrument_type'] }}"
+                                    data-expiration_date="{{ details['expiration_date'] }}"
+                                    data-supplier="{{ details['supplier'] }}"
+                                    data-order_number="{{ item['order_number'] }}"
+                                    data-order_quantity="{{ details['order_quantity'] }}"
+                                    data-dosage="{{ item['dosage'] }}"
+                                    data-form="{{ item['form'] }}"
+                                    data-lot_number="{{ details['lot_number'] }}"
+                                    data-ndc="{{ item['ndc'] }}"
+                                    data-dispense_used="{{ item['dispense_used'] }}"
+                                    data-dispense_as="{{ item['dispense_as'] }}"
+                                    data-unit_quantity="{{ item['unit_quantity'] }}"
+                                    data-prescription_type="{{ item['prescription_type'] }}"
+                                    data-minimum_supply="{{ details['minimum_supply'] }}"
+                                    data-photo_url="{{ item['photo_url'] }}"
+                                    data-last_edit="{{ details['last_edit'] }}"
+                                    data-removed="{{ details['removed'] }}"
+                                    data-restock="{{ details['restock'] }}"
+                                    data-total_quantity="{{ details['total_quantity'] }}"
+                                    {% if details['quantity'] == 0 %} style="text-decoration: line-through;" {% endif %}
+                                    >   {% if details['lot_number'] %}
+                                            Lot {{ details['lot_number'] }} - {{ details['location'] }}
+                                        {% else %}
+                                            {{ details['location'] }}
+                                        {% endif %}
+                                    </option>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+
+                <div class="custom-location-list" style="display:none" id="locationList-{{ item['id'] }}">
+                    {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+                        {% if location_id >= 0 %}
+                            {% set show_location = true %}
+                            {% if session['user'] == 'tepati' and details['location'] not in ['Tepati', 'Grove'] %}
+                                {% set show_location = false %}
+                            {% elif session['user'] == 'klohc' and details['location'] not in ['Knights Landing', 'Grove'] %}
+                                {% set show_location = false %}
+                            {% endif %}
+                            {% if show_location %}
+                                {% set short_location = 'KL' if details['location'] == 'Knights Landing' else details['location'] %}
+                                <div class="location-option"
+                                     data-location-id="{{ location_id }}"
+                                     onclick="handleLocationClick('{{ item['id'] }}', '{{ location_id }}')">
+                                    {% if details['lot_number'] %}
+                                        Lot {{ details['lot_number'] }} - {{ short_location }}
+                                    {% else %}
+                                        {{ details['location'] }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                
+
+
+                <div class="mb-2">
+
+                    <div class="lot-options" style="display:none" id="lotOptions-{{ item['id'] }}">
+                        {% set ns = namespace(count=0) %}
+                        {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+                            {% if location_id >= 0 %}
+                                {% set show_location = true %}
+                                {% if session['user'] == 'tepati' and details['location'] not in ['Tepati', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% elif session['user'] == 'klohc' and details['location'] not in ['Knights Landing', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% endif %}
+
+                                {% if show_location and details['location'] != 'REMOVED' %}
+                                    {% set ns.count = ns.count + 1 %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        
+                        <label class="form-label small fw-bold d-block mb-1">
+                            {{ ns.count }} Lot{{ 's' if ns.count != 1 else '' }} available
+                        </label>
+
+                        
+                        {% for location_id, details in item['locations'].items() | sort(attribute='1.location') %}
+                            {% if location_id >= 0 %}
+                                {% set show_location = true %}
+                                {% if session['user'] == 'tepati' and details['location'] not in ['Tepati', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% elif session['user'] == 'klohc' and details['location'] not in ['Knights Landing', 'Grove'] %}
+                                    {% set show_location = false %}
+                                {% endif %}
+
+                                {% if show_location %}
+                                    {% set short_location = 'KL' if details['location'] == 'Knights Landing' else details['location'] %}
+                                    <label class="lot-option" {% if details['location'] == 'REMOVED' %}style="display: none;"{% endif %}>
+                                        <input type="radio" name="lot-{{ item['id'] }}"
+                                            value="{{ location_id }}"
+                                            onchange="handleLocationChange('{{ item['id'] }}', '{{ location_id }}')"
+                                            {% if details.get('is_default', False) %}data-default="true"{% endif %}>
+
+                                        {% if details['lot_number'] %}
+                                            Lot {{ details['lot_number'] }} – {{ short_location }}
+                                        {% else %}
+                                            {{ details['location'] }}
+                                        {% endif %}
+
+                                        {% if details['expiration_date'] %}
+                                            <span class="expiration-date">
+                                                Expiration: {{ details['expiration_date'] }}
+                                            </span>
+                                        {% endif %}
+                                    </label>
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if ns.count == 0 %}
+                            
+                        {% endif %}
+                    </div>
+                </div>
+
+
+                    
+
+                
+    
+                    
+                <button class="btn btn-link btn-sm p-0 mb-2 toggle-details-btn" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#itemInfoContainer-{{ item['id'] }}"
+                {% if ns.count == 0 %}style="display: none;"{% endif %}>
+                View Details
+                </button>
+                
+                
+                <div class="collapse" id="itemInfoContainer-{{ item['id'] }}" 
+                    {% if ns.count == 0 %}style="display: none;"{% endif %}>
+                    <div id="itemIdDisplay-{{ item['id'] }}" class="list-unstyled small mb-2">
+                    </div>
+                </div>
+
+
+
+
+
+                <div id="quantityWrapper-{{ item['id'] }}" class="d-none mb-2">
+                    
+                    <div class="mb-2">
+                        <label for="quantitySelect-{{ item['id'] }}" class="form-label small fw-bold">Quantity</label>
+                        <select id="quantitySelect-{{ item['id'] }}" data-ns-count="{{ ns.count }}" name="quantity_used" class="form-select form-select-sm" onchange="toggleConfirmButton('{{ item['id'] }}')">
+                            <option value="1" class="form-label small fw-bold" selected>1</option>
+                            
+                        </select>
+                    </div>
+                </div>
+
+            
+                <div id="useControls-{{ item['id'] }}" class="d-none">
+                    <div class="d-grid gap-2 mb-2">
+                        <button type="submit" 
+                                class="btn btn-primary btn-sm {% if session.get('user') != 'admin' %}disabled-btn{% endif %}" 
+                                id="confirmUseButton-{{ item['id'] }}" 
+                                title="{% if session.get('user') != 'admin' %}Admins only{% else %}Confirm Use{% endif %}">
+                            Use Quantity
+                        </button>
+                    </div>
+
+                    
+
+                </div>
+
+
+                <div id="transferControls-{{ item['id'] }}" class="d-none">
+                    <div class="mb-2">
+                        <label for="transferSelect-{{ item['id'] }}" class="form-label small fw-bold">Transfer To</label>
+                        <select id="transferSelect-{{ item['id'] }}" name="transfer_id" class="form-select form-select-sm mb-1" onchange="toggleConfirmButton('{{ item['id'] }}')">
+                            
+                            {% for location in locations  | sort(attribute=0) %}
+                                {% set loc_name = location[0] %}
+                                {% if loc_name and loc_name != selected_location %}
+                                    {# --- Recalculate total quantity at this location --- #}
+                                    {% set total_quantity_at_dest = (
+                                        item['locations'].items()
+                                        | selectattr('1.location', 'equalto', loc_name)
+                                        | map(attribute='1.quantity')
+                                        | select('defined')
+                                        | map('int')
+                                        | sum
+                                    ) %}
+
+                                    {# --- Get the maximum minimum_supply at this location --- #}
+                                    {% set all_minimums = (
+                                        item['locations'].items()
+                                        | selectattr('1.location', 'equalto', loc_name)
+                                        | map(attribute='1.minimum_supply')
+                                        | select('defined')
+                                        | map('int')
+                                        | list
+                                    ) %}
+                                    {% set max_minimum = all_minimums | max if all_minimums else 0 %}
+
+                                    <option value="{{ loc_name }}" data-location="{{ loc_name }}">
+                                        {{ loc_name }}
+                                        {% if total_quantity_at_dest < max_minimum %}
+                                            
+                                        {% endif %}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+
+                        
+                        <button type="button" 
+                                class="btn btn-primary btn-sm w-100 {% if session.get('user') != 'admin' %}disabled-btn{% endif %}" 
+                                id="confirmTransferButton-{{ item['id'] }}" 
+                                title="{% if session.get('user') != 'admin' %}Admins only{% else %}Transfer Item{% endif %}">
+                            Transfer Quantity
+                        </button>
+
+                        
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                    id="toggleUseBtn-{{ item['id'] }}"
+                    onclick="toggleUseControls('{{ item['id'] }}')"
+                >
+                    Use Item
+                </button>
+
+                <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm w-100 mb-2"
+                    id="toggleTransferBtn-{{ item['id'] }}"
+                    onclick="toggleTransferControls('{{ item['id'] }}')"
+                >
+                    Transfer
+                </button>
+                
+
+                <div class="d-grid gap-2 mt-3">
+
+
+                    <a href="#"
+                    class="btn btn-success btn-sm add-stock-btn {% if session.get('user') != 'admin' %}disabled-btn{% endif %}"
+                    id="add-stock-btn-{{ item['id'] }}"
+                    data-item-id="{{ item['id'] }}"
+                    onclick="{% if session.get('user') == 'admin' %}updateAddStockLink({{ item['id'] }}); sessionStorage.setItem('fromAddItemPage', 'false'){% else %}return false{% endif %}"
+                    title="{% if session.get('user') != 'admin' %}Admins only{% else %}Add Stock{% endif %}">
+                    Add Stock
+                    </a>
+
+
+                    {% set selected_location = item['locations'].values() | list | first %}
+                    {% set restock_status = selected_location['restock'] %}
+                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                            id="confirmRestockButton-{{ item['id'] }}"
+                            title="Order a refill"
+                            {% if restock_status %}disabled{% endif %}>
+                        {% if restock_status %}Cancel Request{% else %}Request Refill{% endif %}
+                    </button>
+
+
+                    <a type="button" 
+                    class="btn btn-outline-secondary btn-sm {% if session.get('user') != 'admin' %}disabled-btn{% endif %}" 
+                    id="viewDetailsButton-{{ item['id'] }}" 
+                    title="{% if session.get('user') != 'admin' %}Admins only{% else %}View Details{% endif %}">
+                    View Details
+                    </a>
+
+                    
+                    <a type="button" 
+                    class="btn btn-warning btn-sm {% if session.get('user') != 'admin' %}disabled-btn{% endif %}" 
+                    id="editDetailsButton-{{ item['id'] }}" 
+                    {% if session.get('user') != 'admin' %}title="You are not allowed to edit details"{% else %}title="Edit Details"{% endif %}>
+                    Edit Details
+                    </a>
+
+                    
+
+
+                    <button type="button" 
+                            class="btn btn-outline-secondary btn-sm {% if session.get('user') != 'admin' %}disabled-btn{% endif %}" 
+                            id="confirmRemoveButton-{{ item['id'] }}" 
+                            title="{% if session.get('user') != 'admin' %}Admins only{% else %}Remove from inventory{% endif %}"
+                            {% if ns.count == 0 %}style="display: none;"{% endif %}>
+                        {% if ns.count == 0 %}
+                            Unremove Lot
+                        {% else %}
+                            Remove Lot
+                        {% endif %}
+                    </button>
+
+
+                    {% if session.get('user') == 'admin' and not session.get('supervisor') %}
+                    <a id="delistLink-{{ item['id'] }}"
+                    href="#"
+                    class="btn btn-outline-secondary btn-sm"
+                    onclick="return confirmDelist();">
+                    Delist Item
+                    </a>
+                    {% endif %}
+
+
+                    {% if(session.get('user') == 'admin') %}
+                    
+                    
+                    <a id="deleteLink-{{ item['id'] }}"
+                    href="#"
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirmDelete();"
+                    {% if ns.count == 0 %}style="display: none;"{% endif %}>
+                        Delete Lot
+                    </a>
+                    {% endif %}
+
+
+                </div>
+
+
+                <div class="d-flex gap-2 flex-wrap justify-content-center mb-2" style="margin-top: 10px;">
+
+
+                </div>
+
+
+                <div class="d-flex gap-2 flex-wrap justify-content-center">
+
+
+                    <td>
+
+                        
+                    </td>
+                </div>
+
+
+                <div class="d-flex gap-2 flex-wrap justify-content-center">
+
+                </div>
+
+
+            </form>
+
+            
+            <form id="transferForm-{{ item['id'] }}" method="POST" style="display: none;">
+                <input type="hidden" name="quantity_to_transfer" id="transferQty-{{ item['id'] }}">
+                <input type="hidden" name="new_location" id="transferLoc-{{ item['id'] }}">
+            </form>
+
+            <form id="removeForm-{{ item['id'] }}" method="POST" style="display: none;">
+            </form>
+
+            <form id="restockForm-{{ item['id'] }}" method="POST" style="display: none;">
+            </form>
+
+
+
+        </div>
+    </div>
+</div>
+
+
+
+
+{% endfor %}
+
+
+{% endblock %}
+
+//   automatically highlight the selected item on initial opening of popup (put this inside the endfor loop)
+//   <script>
+
+//             // Highlight the selected location on load
+//             handleLocationClick(itemId, selectedLocationId);
+// </script>

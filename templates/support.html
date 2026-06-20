@@ -1,0 +1,764 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Feedback / Inquiry Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 15px;
+      background: #007BFF;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"></head>
+<body class="page-support">
+  <h2>Send us a message!</h2>
+  <form action="/submit-feedback" method="POST" enctype="multipart/form-data">
+    <label for="name">Name</label>
+    <input type="text" id="name" name="name" required>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="type">Type</label>
+    <select id="type" name="type" required>
+      <option value="">-- Select --</option>
+      <option value="Feedback">Feedback</option>
+      <option value="Inquiry">Inquiry</option>
+      <option value="Bug">Bug report</option>
+      <option value="Other">Other</option>
+    </select>
+
+    <label for="topic">Topic</label>
+    <input type="text" id="topic" name="topic">
+
+    <label for="message">Message</label>
+    <textarea id="message" name="message" rows="5" required></textarea>
+
+    <label for="rating">Rating (1–5)</label>
+    <select id="rating" name="rating">
+      <option value="">-- None --</option>
+      <option value="5/5">✭✭✭✭✭</option>
+      <option value="4/5">✭✭✭✭</option>
+      <option value="3/5">✭✭✭</option>
+      <option value="2/5">✭✭</option>
+      <option value="1/5">✭</option>
+    </select>
+
+    <label for="file">Upload File (optional)</label>
+    <input type="file" id="file" name="file">
+
+    <button type="submit">Submit</button>
+  </form>
+</body>
+</html> -->
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback / Inquiry Form</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 0;
+    }
+
+    .form-container {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 500px;
+      padding: 36px 40px 28px;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+      color: #e0e0e0;
+      margin-bottom: 24px;
+      font-size: 26px;
+      font-weight: 500;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: 500;
+      color: #ccc;
+      font-size: 15px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      background-color: #2b2b2b;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #4ea8f6;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    /* Consent checkbox styling */
+    .consent-group {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #bdbdbd;
+    }
+
+    .consent-group input[type="checkbox"] {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      accent-color: #4ea8f6;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background-color: #4ea8f6;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 22px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #82c7f6;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+      background-color: #2b2b2b;
+      border: 1px solid #555;
+      color: #ccc;
+    }
+
+    .flash-message {
+      margin-bottom: 10px;
+      color: #ff6b6b;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px;
+      }
+
+      .form-container {
+        width: 90%;
+        padding: 28px 24px 24px;
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      input, select, textarea, button {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Send Us a Message</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/submit-feedback" method="POST" enctype="multipart/form-data">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="type">Type</label>
+      <select id="type" name="type" required>
+        <option value="">-- Select --</option>
+        <option value="Feedback">Feedback</option>
+        <option value="Inquiry">Inquiry</option>
+        <option value="Bug">Bug report</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="topic">Subject</label>
+      <input type="text" id="topic" name="topic">
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="5" required></textarea>
+
+      <label for="rating">Rating (1–5)</label>
+      <select id="rating" name="rating">
+        <option value="">-- None --</option>
+        <option value="5/5">✭✭✭✭✭</option>
+        <option value="4/5">✭✭✭✭</option>
+        <option value="3/5">✭✭✭</option>
+        <option value="2/5">✭✭</option>
+        <option value="1/5">✭</option>
+      </select>
+
+      <label for="file">Upload File (optional)</label>
+      <input type="file" id="file" name="file">
+
+      <div class="consent-group">
+        <input type="checkbox" id="consent" name="consent" required>
+        <label for="consent">I consent to being contacted by email regarding my inquiry.</label>
+      </div>
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</body>
+</html> -->
+
+
+
+
+<!--
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback / Inquiry Form</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    .form-container {
+      background-color: #1e1e1e;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 480px;
+      padding: 32px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 24px;
+      font-size: 24px;
+      font-weight: 500;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: 500;
+      color: #cccccc;
+      font-size: 15px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      background-color: #2b2b2b;
+      color: #ffffff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #4ea8f6;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .consent-group {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #bdbdbd;
+    }
+
+    .consent-group input[type="checkbox"] {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      accent-color: #4ea8f6;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4ea8f6;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #6ebdf6;
+    }
+
+    input[type="file"] {
+      background-color: #2b2b2b;
+      border: 1px solid #555;
+      color: #ccc;
+      padding: 6px;
+    }
+
+    .flash-message {
+      margin-bottom: 10px;
+      color: #ff6b6b;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px;
+      }
+
+      .form-container {
+        padding: 24px;
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      input, select, textarea, button {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Send Us a Message</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/submit-feedback" method="POST" enctype="multipart/form-data">
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="type">Type</label>
+      <select id="type" name="type" required>
+        <option value="">-- Select --</option>
+        <option value="Feedback">Feedback</option>
+        <option value="Inquiry">Inquiry</option>
+        <option value="Bug">Bug Report</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="topic">Subject</label>
+      <input type="text" id="topic" name="topic">
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" rows="5" required></textarea>
+
+      <label for="rating">Rating (1–5)</label>
+      <select id="rating" name="rating">
+        <option value="">-- None --</option>
+        <option value="5/5">★★★★★</option>
+        <option value="4/5">★★★★</option>
+        <option value="3/5">★★★</option>
+        <option value="2/5">★★</option>
+        <option value="1/5">★</option>
+      </select>
+
+      <label for="file">Upload File (optional)</label>
+      <input type="file" id="file" name="file">
+
+      <div class="consent-group">
+        <input type="checkbox" id="consent" name="consent" required>
+        <label for="consent">I consent to being contacted by email regarding my inquiry.</label>
+      </div>
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+    }
+
+    .form-container {
+      background-color: #1e1e1e;
+      border: 1px solid #2e2e2e;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 480px;
+      padding: 32px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      box-sizing: border-box;
+    }
+
+    h2 {
+      text-align: center;
+      color: #ffffff;
+      margin-bottom: 24px;
+      font-size: 24px;
+      font-weight: 500;
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: 500;
+      color: #cccccc;
+      font-size: 15px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 6px;
+      background-color: #2b2b2b;
+      color: #ffffff;
+      border: 1px solid #555;
+      border-radius: 4px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #4ea8f6;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .consent-group {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #bdbdbd;
+    }
+
+    .consent-group input[type="checkbox"] {
+      margin-right: 10px;
+      width: 18px;
+      height: 18px;
+      accent-color: #4ea8f6;
+      cursor: pointer;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4ea8f6;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 500;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #6ebdf6;
+    }
+
+    input[type="file"] {
+      background-color: #2b2b2b;
+      border: 1px solid #555;
+      color: #ccc;
+      padding: 6px;
+    }
+
+    .flash-message {
+      margin-bottom: 10px;
+      color: #ff6b6b;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 20px;
+      }
+
+      .form-container {
+        padding: 24px;
+      }
+
+      h2 {
+        font-size: 22px;
+      }
+
+      input, select, textarea, button {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2>Contact Our Team</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/submit-feedback" method="POST" enctype="multipart/form-data">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Enter your name" required>
+
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+      <label for="type">Message Type</label>
+      <select id="type" name="type" required>
+        <option value="">Select a category</option>
+        <option value="Feedback">General Feedback</option>
+        <option value="Inquiry">Product Inquiry</option>
+        <option value="Bug">Report an Issue</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <label for="topic">Subject</label>
+      <input type="text" id="topic" name="topic" placeholder="Brief subject (optional)">
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" placeholder="Write your message here..." rows="5" required></textarea>
+
+      <label for="rating">How would you rate your experience?</label>
+      <select id="rating" name="rating">
+        <option value="">No rating</option>
+        <option value="5/5">Excellent (★★★★★)</option>
+        <option value="4/5">Good (★★★★)</option>
+        <option value="3/5">Average (★★★)</option>
+        <option value="2/5">Poor (★★)</option>
+        <option value="1/5">Very Poor (★)</option>
+      </select>
+
+      <label for="file">Attach a file (optional)</label>
+      <input type="file" id="file" name="file">
+
+      <div class="consent-group">
+        <input type="checkbox" id="consent" name="consent" required>
+        <label for="consent">I agree to be contacted by email regarding my submission.</label>
+      </div>
+
+      <button type="submit">Send Message</button>
+    </form>
+  </div>
+</body>
+</html> -->
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us</title>
+  
+</head>
+<body>
+  <div class="form-container">
+    <h2>Contact the team</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash-message">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="/submit-feedback" method="POST" enctype="multipart/form-data">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Enter your name" required>
+
+      <label for="email">Email Address</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+      <label for="type">Subject</label>
+      <select id="type" name="type" required>
+        <option value="Feedback">General Feedback</option>
+        <option value="Bug">Report a Problem</option>
+        <option value="Demo">Request a Product Demo</option>
+        <option value="PasswordReset">Reset My Password</option>
+        <option value="Terminate">Close My Account</option>
+        <option value="AccountUpdate">Update Account Information</option>
+        <option value="Billing">Billing or Payment Question</option>
+        <option value="Refund">Request a Refund</option>
+        <option value="Subscription">Manage My Subscription</option>
+        <option value="Upgrade">Upgrade Plan</option>
+        <option value="Downgrade">Downgrade Plan</option>
+        <option value="FeatureRequest">Request a New Feature</option>
+        <option value="Integration">Integration or API Support</option>
+        <option value="Security">Report a Security Concern</option>
+        <option value="DataExport">Request Data Export</option>
+        <option value="Performance">Report Performance Issue</option>
+        <option value="MobileApp">Mobile App Support</option>
+        <option value="Notification">Email or Notification Issue</option>
+        <option value="Access">Access or Permission Problem</option>
+        <option value="Training">Request Training or Onboarding Help</option>
+        <option value="Partnership">Partnership Inquiry</option>
+        <option value="Consultation">Request a Consultation</option>
+        <option value="Documentation">Request Documentation or Guides</option>
+        <option value="Other">Other (please specify in message)</option>
+      </select>
+
+      <label for="message">Message</label>
+      <textarea id="message" name="message" placeholder="Write your message here..." rows="5" required></textarea>
+
+      <button type="submit">Send Message</button>
+
+    </form>
+  </div>
+</body>
+</html>

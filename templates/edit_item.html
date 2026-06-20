@@ -1,0 +1,763 @@
+{% extends "base.html" %}
+{% block body_class %}page-edit-item{% endblock %}
+{% block content %}
+<h1>Edit Item</h1>
+<form method="POST" style="margin-bottom: 30px;" enctype="multipart/form-data" id="edit-item-form">
+
+    <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="name" class="form-control" value="{{ item.name }}" required>
+    </div>
+    <div class="form-group">
+        <label>AKA</label>
+        <input type="text" name="aka" class="form-control" value="{{ item.aka }}">
+    </div>
+
+    {% if item.removed %}
+    <div class="form-group">
+        <label>Status</label>
+        <select name="status" class="form-control">
+            <option value=""></option>
+            <option value="In Stock" {% if item.status == "In Stock" %}selected{% endif %}>In Stock</option>
+            <option value="Removed" {% if item.status == "Removed" %}selected{% endif %}>Removed</option>
+            <option value="Returned" {% if item.status == "Returned" %}selected{% endif %}>Returned</option>
+            <option value="Destroyed" {% if item.status == "Destroyed" %}selected{% endif %}>Destroyed</option>
+        </select>
+    </div>
+    {% endif %}
+
+    <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" name="quantity" class="form-control" value="{{ item.quantity }}" required>
+    </div>
+
+
+    <div class="form-group">
+        <label>Site</label>
+        <select name="location" class="form-control" id="location-select" required>
+            <option value="">Select Location</option>
+            {% for location in locations | sort(attribute='value', reverse=false) %}
+            <option value="{{ location[0] }}" {% if location[0] == item.location %}selected{% endif %}>{{ location[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Location 1</label>
+        <select name="location1" class="form-control" id="location1-select">
+            <option value="{{ item.location1 }}" >Select Location</option>
+            {% for location1 in locations1 | sort(attribute='value', reverse=true) %}
+            <option value="{{ location1[0] }}" {% if location1[0] == item.location1 %}selected{% endif %}>{{ location1[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Location 2</label>
+        <select name="location2" class="form-control" id="location2-select">
+            <option value="{{ item.location2 }}" >Select Location</option>
+            {% for location2 in locations2 | sort(attribute='value', reverse=false) %}
+            <option value="{{ location2[0] }}" {% if location2[0] == item.location2 %}selected{% endif %}>{{ location2[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Location 3</label>
+        <select name="location3" class="form-control" id="location3-select">
+            <option value="{{ item.location3 }}" >Select Location</option>
+            {% for location3 in locations3 | sort(attribute='value', reverse=false) %}
+            <option value="{{ location3[0] }}" {% if location3[0] == item.location3 %}selected{% endif %}>{{ location3[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Location 4</label>
+        <select name="location4" class="form-control" id="location4-select">
+            <option value="{{ item.location4 }}" >Select Location</option>
+            {% for location4 in locations4 | sort(attribute='value', reverse=false) %}
+            <option value="{{ location4[0] }}" {% if location4[0] == item.location4 %}selected{% endif %}>{{ location4[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+
+    <div class="form-group">
+        <label>Dispensed Unit</label>
+        <select name="dispense_as" class="form-control" id="dispense-select">
+            <option value=""> </option>
+            {% for dispense in dispenses | sort(attribute='value', reverse=false) %}
+            <option value="{{ dispense[0] }}" {% if dispense[0] == item.dispense_as %}selected{% endif %}>{{ dispense[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Lot #</label>
+        <input type="text" name="lot_number" class="form-control" value="{{ item.lot_number }}">
+    </div>
+
+    <div class="form-group">
+        <label>
+            Expiration Date (mm/dd/yyyy)
+            <span class="text-danger">*</span>
+        </label>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Month -->
+            <select id="month" class="form-control" style="width: 70px;" required>
+                <option value="">mm</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+            </select>
+
+            <!-- Day -->
+            <select id="day" class="form-control" style="width: 70px;" required>
+                <option value="">dd</option>
+            </select>
+
+            <!-- Year -->
+            <select id="year" class="form-control" style="width: 90px;" required>
+                <option value="">yyyy</option>
+            </select>
+
+            <!-- Does Not Expire Button -->
+            <button type="button" id="noExpireBtn" class="btn btn-outline-secondary">
+                Does not expire
+            </button>
+        </div>
+    </div>
+
+
+
+    <!-- Hidden Input to Store the Full Date -->
+    <input type="hidden" name="expiration_date" id="expiration_date" value="{{ item.expiration_date }}">
+
+    <div class="form-group">
+        <label>Category</label>
+        <select name="category" class="form-control" id="category-select">
+            <option value="" disabled {% if not item.category %}selected{% endif %}>Select Category</option>
+
+            {% set prefill_category = item.category %}
+            {% if prefill_category and prefill_category not in categories | map(attribute=0) | list %}
+                <!-- Show old category only as prefilled, not selectable again -->
+                <option value="{{ prefill_category }}" selected hidden>{{ prefill_category }}</option>
+            {% endif %}
+
+            {% for category in categories | sort(attribute='value', reverse=false) %}
+                <option value="{{ category[0] }}" {% if category[0] == prefill_category %}selected{% endif %}>
+                    {{ category[0] }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Surgical Instrument Options -->
+    <div class="form-group" id="disposable-select" style="display:none;">
+        <label>Type of Surgical Instrument</label>
+        <select name="instrument_type" class="form-control">
+            <option value=""></option>
+            <option value="disposable" {% if item.instrument_type == "disposable" %}selected{% endif %}>Disposable</option>
+            <option value="reusable" {% if item.instrument_type == "reusable" %}selected{% endif %}>Reusable</option>
+        </select>
+    </div>
+
+    <!-- Medication Options -->
+    <!--div class="form-group" id="medication-select" style="display:none;"-->
+
+    <div class="form-group">
+        <label>Dosage</label>
+        <input type="text" name="dosage" class="form-control" value="{{ item.dosage }}">
+    </div>
+
+
+    <div class="form-group">
+        <label>Form</label>
+        <select name="form" class="form-control" id="form-select">
+            <option value=""></option>
+            {% for form in forms | sort(attribute='value', reverse=false) %}
+            <option value="{{ form[0] }}" {% if form[0] == item.form %}selected{% endif %}>{{ form[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Unit</label>
+        <select name="dispense_used" class="form-control" id="unit-select">
+            <option value=""> </option>
+            {% for unit in units | sort(attribute='value', reverse=false) %}
+            <option value="{{ unit[0] }}" {% if unit[0] == item.dispense_used %}selected{% endif %}>{{ unit[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>National Drug Code (NDC)</label>
+        <input type="text" name="ndc" class="form-control" value="{{ item.ndc }}">
+    </div>
+
+    <!-- <div class="form-group">
+        <label>Prescription Type</label>
+        <select name="prescription_type" class="form-control">
+            <option value=""></option>
+            <option value="prescription" {% if item.prescription_type == "prescription" %}selected{% endif %}>Prescription</option>
+            <option value="otc" {% if item.prescription_type == "otc" %}selected{% endif %}>OTC</option>
+        </select>
+    </div> -->
+
+    <div class="form-group">
+        <label>Medication Class</label>
+        <select name="medication_class" class="form-control" id="medication_class-select">
+            <option value=""></option>
+            {% for medication_class in medication_classes | sort(attribute='value', reverse=false) %}
+            <option value="{{ medication_class[0] }}" {% if medication_class[0] == item.medication_class %}selected{% endif %}>{{ medication_class[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label>Supplier</label>
+        <select name="supplier" class="form-control" id="supplier-select">
+            <option value=""></option>
+            {% for supplier in suppliers | sort(attribute='value', reverse=false) %}
+            <option value="{{ supplier[0] }}" {% if supplier[0] == item.supplier %}selected{% endif %}>{{ supplier[0] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Order #</label>
+        <input type="text" name="order_number" class="form-control" value="{{ item.order_number }}">
+    </div>
+    <div class="form-group">
+        <label>Quantity to Order</label>
+        <input type="text" name="order_quantity" class="form-control" value="{{ item.order_quantity }}">
+    </div>
+
+    <!-- Minimum Supply -->
+    <div class="form-group">
+        <label>Minimum Supply</label>
+        <input type="number" name="minimum_supply" class="form-control" value="{{ item.minimum_supply }}">
+    </div>
+
+    <!-- Display Photo -->
+    <div id="photo-display">
+        {% if item.photo_url %}
+            <img src="{{ url_for('static', filename=item.photo_url) }}" alt="Item Photo" class="img-thumbnail" style="max-width: 200px;">
+            <!-- Remove photo button -->
+            <button type="button" id="remove-photo-button" class="btn btn-danger btn-sm" onclick="removePhoto({{ item.id }})">
+                Remove Photo
+            </button>
+        {% endif %}
+    </div>
+
+    <div class="form-group">
+    <label id="file-label">Upload Photo</label>
+    <div class="input-group">
+        <input 
+        type="file" 
+        name="item_photo" 
+        class="form-control" 
+        id="item-photo-input"
+        onchange="handleFileUpload(event)"
+        >
+    </div>
+    <div id="image-preview-container" class="hidden" style="margin-top:10px;">
+        <img id="image-preview" src="" alt="Preview" style="max-width:200px; display:block;">
+    </div>
+    </div>
+
+    <script>
+    const CONFIG = {
+        ALLOWED_FILE_TYPES: ['image/jpeg', 'image/png'],
+        MAX_FILE_SIZE: 5 * 1024 * 1024 // 5MB
+    };
+
+    function showNotification(message, type) {
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+
+    function handleFileUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!CONFIG.ALLOWED_FILE_TYPES.includes(file.type)) {
+        showNotification('Please upload a JPG or PNG image', 'error');
+        e.target.value = '';
+        return;
+        }
+
+        // Validate file size
+        if (file.size > CONFIG.MAX_FILE_SIZE) {
+        showNotification('File size must be less than 5MB', 'error');
+        e.target.value = '';
+        return;
+        }
+
+        // Rename file with timestamp, username, and clinic
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const clinic = '{{ session.get("clinic", "unknown") }}';
+        const fileExtension = file.name.split('.').pop();
+        const originalName = file.name.substring(0, file.name.lastIndexOf('.'));
+        
+        const newFileName = `${originalName}_${clinic}_${timestamp}.${fileExtension}`;
+        
+        const renamedFile = new File([file], newFileName, { type: file.type });
+        
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(renamedFile);
+        e.target.files = dataTransfer.files;
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = function(event) {
+        const preview = document.getElementById('image-preview');
+        const container = document.getElementById('image-preview-container');
+        const label = document.getElementById('file-label');
+        
+        if (preview && container && label) {
+            preview.src = event.target.result;
+            container.classList.remove('hidden');
+            label.textContent = newFileName;
+        }
+        };
+        reader.readAsDataURL(renamedFile); // use renamed file here
+    }
+    </script>
+
+    
+    <div class="form-group">
+        <label>Notes</label>
+        <textarea name="description" class="form-control" style="margin-bottom: 15px;">{{ item.description }}</textarea>
+    </div>
+
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Back</button>
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>
+
+
+<!-- JavaScript to handle photo removal -->
+<script>
+    function removePhoto(itemId) {
+        if (confirm("Are you sure you want to remove this photo?")) {
+            // Send a POST request to the backend to remove the photo
+            fetch('/remove_photo/' + itemId, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Hide the photo and remove the "Remove Photo" button
+                    const photoDisplay = document.getElementById('photo-display');
+                    const removeButton = document.getElementById('remove-photo-button');
+
+                    // Hide the image and the remove button, and display "No Photo Available"
+                    const photoElement = photoDisplay.querySelector('img');
+                    if (photoElement) {
+                        photoElement.style.display = 'none';  // Hide the image
+                    }
+                    removeButton.style.display = 'none';  // Hide the remove button
+
+                    // Display "No Photo Available"
+                    const photoSpan = photoDisplay.querySelector('span');
+                    if (photoSpan) {
+                        photoSpan.innerText = 'No Photo Available';  // Update text
+                        photoSpan.style.display = 'inline';  // Ensure span is visible
+                    }
+
+                    // Optionally, show the file input for re-upload
+                    document.getElementById('item-photo-input').style.display = 'block';
+                } else {
+                    alert('Error removing photo');
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+        }
+    }
+</script>
+
+<script>
+    // Show/Hide category-specific fields based on the selected category
+    document.getElementById("category-select").addEventListener("change", function() {
+        var category = this.value;
+        var disposableSelect = document.getElementById("disposable-select");
+        var medicationSelect = document.getElementById("medication-select");
+
+        // Show/hide Surgical Instrument options
+        if (category === "Surgical Instrument") {
+            disposableSelect.style.display = "block";
+            medicationSelect.style.display = "none";
+        } else {
+            disposableSelect.style.display = "none";
+        }
+
+        // Show/hide Medication options
+        if (category === "Medication") {
+            medicationSelect.style.display = "block";
+        } else {
+            medicationSelect.style.display = "none";
+        }
+    });
+
+    // Initialize the form based on the current category
+    document.addEventListener("DOMContentLoaded", function() {
+        var category = document.getElementById("category-select").value;
+        var disposableSelect = document.getElementById("disposable-select");
+        var medicationSelect = document.getElementById("medication-select");
+
+        // Set visibility of fields based on the current category value
+        if (category === "Surgical Instrument") {
+            disposableSelect.style.display = "block";
+            medicationSelect.style.display = "none";
+        } else if (category === "Medication") {
+            medicationSelect.style.display = "block";
+            disposableSelect.style.display = "none";
+        } else {
+            disposableSelect.style.display = "none";
+            medicationSelect.style.display = "none";
+        }
+    });
+</script>
+
+
+
+<script>
+    document.getElementById('edit-item-form').addEventListener('submit', function(event) {
+        var noPhotoCheckbox = document.getElementById('no-photo-checkbox');
+        var photoInput = document.getElementById('item-photo-input');
+        var currentPhotoUrl = "{{ item.photo_url }}"; // Get current photo URL from the backend
+
+        if (noPhotoCheckbox.checked) {
+            // If 'No Photo' checkbox is checked and there is a current photo, delete the current photo
+            if (currentPhotoUrl) {
+                var oldPhotoUrl = currentPhotoUrl.split('/').pop(); // Extract filename from URL
+
+                // Send a request to delete the old photo
+                fetch("/delete_photo", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ photo_url: oldPhotoUrl })  // Send only the filename of the old photo
+                });
+            }
+
+            // Disable the photo input to prevent uploading a new photo
+            photoInput.disabled = true;
+        } else {
+            // If 'No Photo' checkbox is unchecked, enable the photo input
+            photoInput.disabled = false;
+        }
+
+        // If a new photo is uploaded, delete the old one (if exists) before submitting the form
+        if (photoInput.files.length > 0) {
+            if (currentPhotoUrl) {
+                var oldPhotoUrl = currentPhotoUrl.split('/').pop(); // Extract filename from URL
+
+                // Send a request to delete the old photo
+                fetch("/delete_photo", {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ photo_url: oldPhotoUrl })  // Send only the filename of the old photo
+                });
+            }
+        }
+    });
+
+
+
+    // Function to update a dropdown with new options, while preserving the selected option
+    function updateLocationDropdown(locationName, options) {
+        var select = document.querySelector(`[name="${locationName}"]`);
+        var selectedValue = select.value; // Preserve the currently selected value
+
+        // Clear existing options and add a default one
+        select.innerHTML = '<option value=""></option>';
+
+        // Add new options from the response
+        options.forEach(function(option) {
+            var optionElement = document.createElement('option');
+            optionElement.textContent = option;
+            optionElement.value = option;
+
+            // Re-select the previously selected value
+            if (option === selectedValue) {
+                optionElement.selected = true;
+            }
+
+            select.appendChild(optionElement);
+        });
+    }
+
+    // Function to fetch location data and update the dropdowns
+    function fetchAndUpdateLocations(location) {
+        fetch(`/get_locations?location=${location}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update the location1, location2, location3, location4 dropdowns
+                updateLocationDropdown('location1', data.locations1);
+                updateLocationDropdown('location2', data.locations2);
+                updateLocationDropdown('location3', data.locations3);
+                updateLocationDropdown('location4', data.locations4);
+            })
+            .catch(error => console.error('Error fetching locations:', error));
+    }
+
+    // Event listener for 'location' change (when the user selects a new location)
+    document.querySelector('[name="location"]').addEventListener('change', function() {
+        var location = this.value;
+        fetchAndUpdateLocations(location);
+    });
+
+    // 1. Populating dropdowns immediately on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        var locationDropdown = document.querySelector('[name="location"]');
+        var initialLocation = locationDropdown.value; // Get the initial value of location
+
+        // If there's a selected location, populate the location1-4 dropdowns
+        if (initialLocation) {
+            fetchAndUpdateLocations(initialLocation);
+        }
+    });
+</script>
+
+
+<script>
+    // Populate Day dropdown dynamically based on the selected month
+    function populateDays(month) {
+        const daySelect = document.getElementById('day');
+        const selectedDay = daySelect.value;  // Save the currently selected day
+
+        daySelect.innerHTML = '<option value="">dd</option>'; // Reset options
+
+        // Determine the number of days in the month
+        let daysInMonth;
+        const year = document.getElementById('year').value;
+
+        if (month === "01" || month === "03" || month === "05" || month === "07" || month === "08" || month === "10" || month === "12") {
+            daysInMonth = 31;
+        } else if (month === "04" || month === "06" || month === "09" || month === "11") {
+            daysInMonth = 30;
+        } else if (month === "02") {
+            // Handle February (28 or 29 days based on leap year)
+            if (year) {
+                daysInMonth = isLeapYear(year) ? 29 : 28;
+            } else {
+                daysInMonth = 28; // Default for now
+            }
+        } else {
+            daysInMonth = 0; // Invalid month
+        }
+
+        // Populate the Day dropdown with options
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dayOption = document.createElement("option");
+            dayOption.value = i < 10 ? "0" + i : i;
+            dayOption.textContent = i < 10 ? "0" + i : i;
+            daySelect.appendChild(dayOption);
+        }
+
+        // If the previously selected day is still valid, keep it selected
+        if (selectedDay && selectedDay <= daysInMonth) {
+            daySelect.value = selectedDay;
+        } else {
+            // If the previously selected day is no longer valid, reset to the first option
+            daySelect.value = "";
+        }
+    }
+
+    // Check if a year is a leap year
+    function isLeapYear(year) {
+        return (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0));
+    }
+
+    // Populate Year dropdown dynamically
+    function populateYears() {
+        const yearSelect = document.getElementById('year');
+        for (let i = 2020; i <= 2030; i++) {  // You can adjust the range of years here
+            const yearOption = document.createElement("option");
+            yearOption.value = i;
+            yearOption.textContent = i;
+            yearSelect.appendChild(yearOption);
+        }
+    }
+
+    // Update the input field whenever a change is made in the dropdowns
+    function updateInputField() {
+        const month = document.getElementById('month').value;
+        const day = document.getElementById('day').value;
+        const year = document.getElementById('year').value;
+
+        if (month && day && year) {
+            // Ensure that the month, day, and year are in the correct MM/DD/YYYY format
+            const formattedDate = `${month}/${day}/${year}`;
+            document.querySelector('input[name="expiration_date"]').value = formattedDate;
+        }
+        if (!month && !day && !year) {
+            // Ensure that the month, day, and year are in the correct MM/DD/YYYY format
+            const formattedDate = ``;
+            document.querySelector('input[name="expiration_date"]').value = formattedDate;
+        }
+
+        if (month && !day && year) {
+            // Function to check if a year is a leap year
+            function isLeapYear(year) {
+                return (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0));
+            }
+
+            // Determine the number of days in the selected month
+            let daysInMonth;
+
+            // Use the month and year to calculate the number of days
+            if (month === "01" || month === "03" || month === "05" || month === "07" || month === "08" || month === "10" || month === "12") {
+                daysInMonth = 31;
+            } else if (month === "04" || month === "06" || month === "09" || month === "11") {
+                daysInMonth = 30;
+            } else if (month === "02") {
+                daysInMonth = isLeapYear(year) ? 29 : 28;
+            } else {
+                daysInMonth = 0; // Invalid month
+            }
+
+            // Ensure that the month, day, and year are in the correct MM/DD/YYYY format
+            const formattedDate = `${month}/${daysInMonth < 10 ? '0' + daysInMonth : daysInMonth}/${year}`;
+            document.querySelector('input[name="expiration_date"]').value = formattedDate;
+        }
+    }
+
+    // Add event listeners to update date and populate dropdowns on change
+    document.getElementById('month').addEventListener('change', function () {
+        populateDays(this.value); // Populate days based on month
+        updateInputField(); // Update the hidden input field
+    });
+
+    document.getElementById('day').addEventListener('change', updateInputField);
+    document.getElementById('year').addEventListener('change', function () {
+        populateDays(document.getElementById('month').value); // Re-populate days based on month
+        updateInputField();
+    });
+
+    // Use DOMContentLoaded to ensure that the DOM is fully loaded before executing script
+    document.addEventListener('DOMContentLoaded', function () {
+        populateYears(); // Populate the year dropdown when the DOM is ready
+        populateDays(document.getElementById('month').value); // Populate days based on selected month (if any)
+    });
+</script>
+
+<script>
+    // Prefill expiration date selection
+    document.addEventListener('DOMContentLoaded', function () {
+        const daySelect = document.getElementById('day');
+        const yearSelect = document.getElementById('year');
+
+        // Populate day options
+        for (let i = 1; i <= 31; i++) {
+            const val = i.toString().padStart(2, '0');
+            const option = document.createElement('option');
+            option.value = val;
+            option.textContent = val;
+            daySelect.appendChild(option);
+        }
+
+        // Populate year options
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear - 10; i <= currentYear + 10; i++) {
+            const option = document.createElement('option');
+            option.value = i.toString();
+            option.textContent = i.toString();
+            yearSelect.appendChild(option);
+        }
+
+        // Now set values after options are populated
+        const fullDate = document.getElementById('expiration_date').value;
+        if (fullDate) {
+            const [mm, dd, yyyy] = fullDate.split('/');
+
+            if (mm) document.getElementById('month').value = mm;
+            if (dd) daySelect.value = dd;
+            if (yyyy) yearSelect.value = yyyy;
+        }
+    });
+</script>
+
+
+<!-- NEW 1/31/2026 -->
+<script>
+    const month = document.getElementById("month");
+    const day = document.getElementById("day");
+    const year = document.getElementById("year");
+    const noExpireBtn = document.getElementById("noExpireBtn");
+    const expirationHidden = document.getElementById("expiration_date");
+
+    function updateHiddenExpiration() {
+        if (month.value && day.value && year.value) {
+            expirationHidden.value = `${month.value}/${day.value}/${year.value}`;
+        } else {
+            expirationHidden.value = "";
+        }
+    }
+
+    // Update hidden field when date changes
+    [month, day, year].forEach(el =>
+        el.addEventListener("change", updateHiddenExpiration)
+    );
+
+    let noExpire = false;
+
+    noExpireBtn.addEventListener("click", () => {
+        noExpire = !noExpire;
+
+        if (noExpire) {
+            month.value = "";
+            day.value = "";
+            year.value = "";
+
+            month.disabled = true;
+            day.disabled = true;
+            year.disabled = true;
+
+            month.required = false;
+            day.required = false;
+            year.required = false;
+
+            // 🔑 THIS is the important line
+            expirationHidden.value = "";
+
+            noExpireBtn.textContent = "Expiration disabled";
+            noExpireBtn.classList.replace("btn-outline-secondary", "btn-secondary");
+        } else {
+            month.disabled = false;
+            day.disabled = false;
+            year.disabled = false;
+
+            month.required = true;
+            day.required = true;
+            year.required = true;
+
+            noExpireBtn.textContent = "Does not expire";
+            noExpireBtn.classList.replace("btn-secondary", "btn-outline-secondary");
+        }
+    });
+</script>
+
+<script>
+    if (!expirationHidden.value) {
+        noExpireBtn.click();
+    }
+</script>
+
+
+
+
+{% endblock %}

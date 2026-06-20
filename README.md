@@ -1,0 +1,20 @@
+# Clinic Inventory:
+- Log in with CIVIC credentials. 
+- Admin has exclusive access to settings and requests
+- Feedback form to submit bugs, inquiries, feedback etc. Submission is automatically emailed to developers. 
+- Adding an item is simple, just fill out a form. You can add multiple lots, expiration dates, and locations in one submission. 
+- You can upload photo of the item. 
+- Locations, sub locations, category names, suppliers, etc. Can be added, edited, or deleted in the settings tab. 
+- Inventory database can be backed up manually (download to local storage)
+- Medication log displays how many of which item have been used or transferred, timestamp, and user. 
+- Print inventory, or download the full audit report as either CSV or Excel. 
+- Remove items from the inventory and mark status as removed, destroyed, or returned. 
+- Request refills. The list is sent in a weekly email that is automated. Admin can “resolve” the requests. 
+- Filter inventory by category, supplier, location, sub location, last edit date, expired, expires soon, or low supply. 
+- Search for an item or lot number with specific autocomplete suggestions. 
+- Sort results by name or last edit. 
+- Click an item and select the lot. Click view details for quick info such as exact location of the item, quantity available, and expiration. 
+- Select quantity to use or transfer from a dropdown menu. 
+- Request refills, add supply, remove, or delete items (admin only).
+- Edit item info by clicking view details and then navigate to the edit button. 
+- Share the app to your Home Screen on mobile device for a more user friendly experience. 

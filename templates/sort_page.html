@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sort Inventory</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> <!-- Optional CSS -->
+
+    <!-- Add print-specific CSS -->
+    
+</head>
+<body class="page-sort-page">
+    <!--header>
+        <h1>Inventory</h1>
+    </header-->
+
+    <!-- Back to Inventory Page Button (Will be hidden on print) -->
+    <!--nav>
+        <a href="{{ url_for('main_page') }}">← Go Back</a>
+    </nav-->
+
+    <!-- Item Report Table -->
+    <section class="item-report-section">
+        {% set not_removed_items = items | selectattr('removed', 'equalto', 0) | list %}
+        {% set not_removed_items = not_removed_items + (items | selectattr('removed', 'equalto', None) | list) %}
+
+        {% if not_removed_items %}
+            <div class="table-container">
+                <table id="itemsTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(0)">Name</th>
+                            <th onclick="sortTable(1)">Aka</th>
+                            <th onclick="sortTable(2)">Quantity</th>
+                            <th onclick="sortTable(3)">Location</th>
+                            <th onclick="sortTable(4)">Location1</th>
+                            <th onclick="sortTable(5)">Location2</th>
+                            <th onclick="sortTable(6)">Location3</th>
+                            <th onclick="sortTable(7)">Location4</th>
+                            <th onclick="sortTable(8)">Dispensed Unit</th>
+                            <th onclick="sortTable(9)">Category</th>
+                            <th onclick="sortTable(10)">Description</th>
+                            <th onclick="sortTable(11)">Instrument Type</th>
+                            <th onclick="sortTable(12)">Expiration Date</th>
+                            <th onclick="sortTable(13)">Supplier</th>
+                            <th onclick="sortTable(14)">Order Number</th>
+                            <th onclick="sortTable(15)">Dosage</th>
+                            <th onclick="sortTable(16)">Form</th>
+                            <th onclick="sortTable(17)">Lot Number</th>
+                            <th onclick="sortTable(18)">NDC</th>
+                            <th onclick="sortTable(19)">Unit</th>
+                            <th onclick="sortTable(20)">Minimum Supply</th>
+                            <th onclick="sortTable(21)">Last Edit</th>
+                            <th onclick="sortTable(22)">Removed</th>
+                            <th onclick="sortTable(23)">Low Supply</th>
+                            <th onclick="sortTable(24)">id</th>
+                            <th onclick="sortTable(25)">prescription type</th>
+                            <th onclick="sortTable(26)">medication class</th>
+                            <th onclick="sortTable(27)">photo url</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in not_removed_items %}
+                            <tr>
+                                <td>{{ med['name'] }}</td>
+                                <td>{{ med['aka'] }}</td>
+                                <td>{{ med['quantity'] }}</td>
+                                <td>{{ med['location'] }}</td>
+                                <td>{{ med['location1'] }}</td>
+                                <td>{{ med['location2'] }}</td>
+                                <td>{{ med['location3'] }}</td>
+                                <td>{{ med['location4'] }}</td>
+                                <td>{{ med['dispense_as'] }}</td>
+                                <td>{{ med['category'] }}</td>
+                                <td>{{ med['description'] }}</td>
+                                <td>{{ med['instrument_type'] }}</td>
+                                <td>{{ med['expiration_date'] }}</td>
+                                <td>{{ med['supplier'] }}</td>
+                                <td>{{ med['order_number'] }}</td>
+                                <td>{{ med['dosage'] }}</td>
+                                <td>{{ med['form'] }}</td>
+                                <td>{{ med['lot_number'] }}</td>
+                                <td>{{ med['ndc'] }}</td>
+                                <td>{{ med['dispense_used'] }}</td>
+                                <td>{{ med['minimum_supply'] }}</td>
+                                <td>{{ med['last_edit'] }}</td>
+                                <td>
+                                    {% if med['removed'] == 1 %}
+                                        Yes
+                                    {% else %}
+                                        No
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if med['quantity']|int < med['minimum_supply']|int %}
+                                        Yes
+                                    {% else %}
+                                        No
+                                    {% endif %}
+                                </td>
+                                <td>{{ med['id'] }}</td>
+                                <td>{{ med['prescription_type'] }}</td>
+                                <td>{{ med['medication_class'] }}</td>
+                                <td>{{ med['photo_url'] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p>No items found.</p>
+        {% endif %}
+
+        <!-- Print Item Report Button -->
+        {% if items %}
+        <button onclick="window.print()" class="btn btn-info mt-2 print-btn">
+            Print Report
+        </button>
+        {% endif %}
+    </section>
+
+    <!-- JavaScript for Sorting Table -->
+    <script>
+        function sortTable(n) {
+            var table = document.getElementById("itemsTable");
+            var rows = Array.from(table.rows).slice(1);  // Skip the header row
+
+            var dir = table.rows[0].getElementsByTagName("TH")[n].getAttribute("data-sort") || "asc";
+            var isNumeric = !isNaN(rows[0].cells[n].innerText.trim());
+
+            // Sort the rows based on the selected column
+            rows.sort((rowA, rowB) => {
+                var x = rowA.cells[n].innerText.trim();
+                var y = rowB.cells[n].innerText.trim();
+
+                if (isNumeric) {
+                    x = parseFloat(x);
+                    y = parseFloat(y);
+                } else {
+                    x = x.toLowerCase();
+                    y = y.toLowerCase();
+                }
+
+                return dir === "asc" ? (x > y ? 1 : (x < y ? -1 : 0)) : (x < y ? 1 : (x > y ? -1 : 0));
+            });
+
+            // Toggle direction
+            table.rows[0].getElementsByTagName("TH")[n].setAttribute("data-sort", dir === "asc" ? "desc" : "asc");
+
+            // Append the sorted rows back to the table
+            rows.forEach(row => table.appendChild(row));
+        }
+    </script>
+
+
+</body>
+</html>
